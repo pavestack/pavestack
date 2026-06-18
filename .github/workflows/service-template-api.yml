@@ -13,9 +13,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
-  id-token: write
-  pull-requests: write
+  contents: read
 
 env:
   SERVICE_NAME: service-template-api
@@ -64,6 +62,10 @@ jobs:
     if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && vars.AWS_ROLE_ARN != ''
     runs-on: ubuntu-latest
     environment: dev
+    permissions:
+      contents: write
+      id-token: write
+      pull-requests: write
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
         with:
