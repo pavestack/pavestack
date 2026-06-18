@@ -1,13 +1,2 @@
 # Default code owner
-*                       @pavestack/maintainers
-
-# Infrastructure & Platform
-/platform-infra/        @pavestack/platform-engineering
-/platform-config/       @pavestack/platform-engineering
-
-# CLI and Templates
-/pave/                  @pavestack/core-devs
-/service-template-api/  @pavestack/core-devs
-
-# Developer Portal
-/pavestack-portal/      @pavestack/frontend-devs
+*       @tengisch
