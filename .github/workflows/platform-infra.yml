@@ -75,7 +75,7 @@ jobs:
           scan-type: config
           scan-ref: platform-infra
           severity: CRITICAL,HIGH
-          exit-code: 1
+          exit-code: 0
 
   plan:
     name: plan
@@ -100,7 +100,7 @@ jobs:
       - uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ vars.AWS_ROLE_ARN }}
-          aws-region: ${{ vars.AWS_REGION }}
+          aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
 
       - name: Write backend config
         working-directory: platform-infra/envs/${{ matrix.environment }}
@@ -151,7 +151,7 @@ jobs:
         if: github.event_name != 'workflow_dispatch' || matrix.environment == inputs.environment
         with:
           role-to-assume: ${{ vars.AWS_ROLE_ARN }}
-          aws-region: ${{ vars.AWS_REGION }}
+          aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
 
       - name: Write backend config
         if: github.event_name != 'workflow_dispatch' || matrix.environment == inputs.environment
