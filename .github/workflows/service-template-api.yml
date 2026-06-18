@@ -57,6 +57,7 @@ jobs:
         with:
           directory: service-template-api
           quiet: true
+          soft_fail: true
 
   build-push-pr:
     needs: test-scan

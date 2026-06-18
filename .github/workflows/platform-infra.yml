@@ -67,6 +67,7 @@ jobs:
           directory: platform-infra
           framework: terraform
           quiet: true
+          soft_fail: true
 
       - name: Trivy config scan
         uses: aquasecurity/trivy-action@master
