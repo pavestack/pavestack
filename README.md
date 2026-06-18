@@ -13,6 +13,7 @@
   <a href="https://github.com/pavestack/pavestack/actions/workflows/pave-cli.yml"><img src="https://github.com/pavestack/pavestack/actions/workflows/pave-cli.yml/badge.svg" alt="CLI CI" /></a>
   <img src="https://img.shields.io/github/last-commit/pavestack/pavestack" alt="Last Commit" />
   <img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg" alt="License" />
+  <a href="https://securityscorecards.dev/viewer/?uri=github.com/pavestack/pavestack"><img src="https://api.securityscorecards.dev/projects/github.com/pavestack/pavestack/badge" alt="OpenSSF Scorecard" /></a>
 </p>
 
 <p align="center">
