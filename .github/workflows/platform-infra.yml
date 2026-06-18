@@ -36,7 +36,7 @@ jobs:
       run:
         working-directory: platform-infra
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: hashicorp/setup-terraform@v3
         with:
@@ -91,7 +91,7 @@ jobs:
       run:
         working-directory: platform-infra
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: hashicorp/setup-terraform@v3
         with:
@@ -139,7 +139,7 @@ jobs:
         if: github.event_name == 'workflow_dispatch' && matrix.environment != inputs.environment
         run: echo "Skipping ${{ matrix.environment }}"
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         if: github.event_name != 'workflow_dispatch' || matrix.environment == inputs.environment
 
       - uses: hashicorp/setup-terraform@v3
