@@ -1,0 +1,32 @@
+# Binaries
+/bin/
+*.exe
+
+# Go
+vendor/
+
+# Node
+**/node_modules/
+**/.next/
+**/out/
+pavestack-portal/public/catalog.json
+
+# Terraform
+**/.terraform/
+**/*.tfstate
+**/*.tfstate.*
+**/backend.hcl
+**/tfplan
+**/.terraform.lock.hcl
+
+# OS / IDE
+.DS_Store
+.idea/
+.vscode/
+
+# Secrets
+**/.env
+**/*.pem
+
+# Generated services (optional — remove if committing scaffolds)
+# services/*/

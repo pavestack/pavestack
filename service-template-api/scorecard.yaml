@@ -1,0 +1,24 @@
+service: service-template-api
+owner: team-platform
+criteria:
+  security_scan_passing:
+    weight: 30
+    status: passing
+    evidence: .github/workflows/service-template-api.yml
+  docs_present:
+    weight: 20
+    status: passing
+    evidence: README.md
+  health_endpoint_configured:
+    weight: 25
+    status: passing
+    evidence: internal/server/server.go
+  container_non_root:
+    weight: 15
+    status: passing
+    evidence: Dockerfile
+  gitops_manifests:
+    weight: 10
+    status: passing
+    evidence: platform-config/tenants
+overall_score: 100

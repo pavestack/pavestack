@@ -1,0 +1,50 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: service-template-api
+resources:
+  - ../../../templates/namespace
+  - ../../../templates/rbac
+  - ../../../templates/network-policy
+  - ../../../templates/resource-quota
+patches:
+  - target:
+      kind: Namespace
+      name: REPLACE_NAMESPACE
+    patch: |
+      - op: replace
+        path: /metadata/name
+        value: service-template-api
+      - op: replace
+        path: /metadata/labels/pavestack.io~1team
+        value: team-platform
+  - target:
+      kind: Role
+      name: developer
+    patch: |
+      - op: replace
+        path: /metadata/namespace
+        value: service-template-api
+  - target:
+      kind: RoleBinding
+      name: developer-binding
+    patch: |
+      - op: replace
+        path: /metadata/namespace
+        value: service-template-api
+      - op: replace
+        path: /subjects/0/name
+        value: team-platform
+  - target:
+      kind: NetworkPolicy
+      name: default-deny
+    patch: |
+      - op: replace
+        path: /metadata/namespace
+        value: service-template-api
+  - target:
+      kind: ResourceQuota
+      name: tenant-quota
+    patch: |
+      - op: replace
+        path: /metadata/namespace
+        value: service-template-api

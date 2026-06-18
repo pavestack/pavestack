@@ -1,0 +1,5 @@
+namespace: service-template-api
+helmPath: service-template-api/deploy/helm/service-template-api
+releaseName: service-template-api
+owner: team-platform
+database: false

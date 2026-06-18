@@ -1,0 +1,13 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: service-template-api
+  description: Golden-path internal API service template for Pavestack
+  annotations:
+    github.com/project-slug: pavestack/pavestack
+    pavestack.io/team: platform
+spec:
+  type: service
+  lifecycle: production
+  owner: team-platform
+  system: pavestack

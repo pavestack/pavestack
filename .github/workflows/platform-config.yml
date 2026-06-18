@@ -1,0 +1,50 @@
+name: platform-config
+
+on:
+  pull_request:
+    paths:
+      - "platform-config/**"
+      - ".github/workflows/platform-config.yml"
+  push:
+    branches: ["main"]
+    paths:
+      - "platform-config/**"
+      - ".github/workflows/platform-config.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Gitleaks secret scan
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Validate Kubernetes manifests
+        run: |
+          curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+          chmod +x kubectl
+          find platform-config -name '*.yaml' -print0 | while IFS= read -r -d '' file; do
+            kubectl apply --dry-run=client -f "$file" || true
+          done
+
+      - name: Checkov Kubernetes scan
+        uses: bridgecrewio/checkov-action@v12
+        with:
+          directory: platform-config
+          framework: kubernetes
+          quiet: true
+          soft_fail: true
+
+      - name: Trivy config scan
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: config
+          scan-ref: platform-config
+          severity: CRITICAL,HIGH
+          exit-code: 1

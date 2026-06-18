@@ -1,0 +1,204 @@
+# platform-infra
+
+Terraform foundation for Pavestack, a CLI-first internal developer platform MVP.
+
+This repository owns shared AWS infrastructure and Kubernetes bootstrap only. It intentionally does not own application workloads, service manifests, or namespaced delivery state. Argo CD reconciles in-cluster desired state from a separate GitOps config repository.
+
+## What This Repo Owns
+
+- AWS network foundation: VPC, public/private subnets, routing, NAT, and EKS subnet tags.
+- IAM for platform bootstrap: EKS roles, node roles, add-on roles, and optional GitHub Actions OIDC roles.
+- EKS baseline: managed control plane, managed node group, core add-ons, log groups, and encryption key.
+- Image registry strategy: shared ECR repositories for platform-managed base images and tooling.
+- Cluster bootstrap: Argo CD installed by Helm into `argocd`.
+- Outputs consumed by downstream repos: cluster name, endpoint, OIDC issuer, subnet IDs, VPC ID, ECR URLs, and Argo CD namespace.
+
+## What This Repo Does Not Own
+
+- Application workloads or Kubernetes manifests for services.
+- Namespaces, Deployments, Services, Ingresses, Secrets, or app-specific RBAC.
+- Argo CD `Application` resources for services.
+- Portal UI, scorecards, or a full observability platform.
+- Plaintext secrets.
+
+## Architecture Overview
+
+```mermaid
+flowchart LR
+  GH[GitHub Actions + Environments] -->|assume role via OIDC| AWSIAM[AWS IAM OIDC Role]
+
+  subgraph AWS["AWS"]
+    subgraph Backend["Terraform Remote State"]
+      S3[S3 State Bucket]
+      LOCK[S3 Lockfile]
+    end
+
+    subgraph Network["modules/network"]
+      VPC[[VPC]]
+      IGW[[Internet Gateway]]
+      PUB[[Public Subnets]]
+      PRV[[Private Subnets]]
+      NAT[[NAT Gateway]]
+      RT_PUB[[Public Route Table]]
+      RT_PRV[[Private Route Tables]]
+    end
+
+    subgraph EKS["modules/eks"]
+      EKSCL[[Amazon EKS Cluster]]
+      EKSNG[[Managed Node Group]]
+      CLUSTROLE[[Cluster IAM Role]]
+      NODEROLE[[Node IAM Role]]
+      SG[[Cluster Security Group]]
+      KMS[[KMS Key for secrets encryption]]
+      LOGS[[CloudWatch Log Group]]
+      OIDC[[EKS OIDC Provider]]
+      ADDONS[[Core EKS Add-ons]]
+    end
+
+    subgraph ECR_MODULE["modules/ecr"]
+      ECR_REPO[[Shared ECR Repositories]]
+      ECR_LIFE[[Lifecycle Policies]]
+    end
+
+    subgraph ArgoCD["modules/argocd-bootstrap"]
+      NAMESPACE[[argocd Namespace]]
+      ARGOCD[[Argo CD Helm Release]]
+    end
+
+    DOWN["Downstream repos & GitOps config"]
+  end
+
+  GH --> S3
+  S3 --> LOCK
+
+  VPC --> IGW
+  VPC --> PUB
+  VPC --> PRV
+  PUB --> RT_PUB
+  PRV --> RT_PRV
+  PRV --> NAT
+
+  EKSCL --> SG
+  EKSCL --> PRV
+  EKSCL --> CLUSTROLE
+  EKSNG --> NODEROLE
+  EKSNG --> PRV
+  EKSCL --> OIDC
+  EKSCL --> KMS
+  EKSCL --> LOGS
+  EKSCL --> ADDONS
+  ARGOCD --> EKSCL
+
+  ECR_REPO --> ECR_LIFE
+  ECR_REPO -->|image registry| EKSNG
+  ECR_REPO -->|repository URLs| DOWN
+  EKSCL -->|cluster metadata| DOWN
+  ARGOCD -->|namespace| DOWN
+
+  classDef module fill:#f8f9fa,stroke:#3399ff,stroke-width:1px;
+  class Network,EKS,ECR_MODULE,ArgoCD module;
+```
+
+## Repository Layout
+
+```text
+.
+├── bootstrap/remote-state      # One-time S3 state bucket and lockfile state setup
+├── envs/dev                    # Dev environment composition
+├── envs/prod                   # Prod environment composition
+├── modules/argocd-bootstrap    # Helm bootstrap for Argo CD only
+├── modules/ecr                 # Shared image registries
+├── modules/eks                 # EKS baseline, IAM, add-ons
+├── modules/github-oidc         # Optional CI role trust for GitHub Actions
+├── modules/network             # VPC, subnets, routing
+├── scripts/terraform-env.sh    # Small local Terraform helper
+└── .github/workflows           # fmt, validate, scan, plan, apply
+```
+
+## Prerequisites
+
+- Terraform `>= 1.9.0`.
+- AWS CLI access for the target account.
+- An AWS region with EKS support.
+- A pre-created or bootstrapped remote state backend.
+- GitHub environments named `dev` and `prod` for controlled applies.
+
+## Remote State
+
+Create remote state once per AWS account:
+
+```bash
+cd bootstrap/remote-state
+terraform init
+terraform apply \
+  -var='name_prefix=pavestack' \
+  -var='environment=shared' \
+  -var='aws_region=eu-central-1'
+```
+
+Terraform now natively supports S3-native state locking via `use_lockfile = true`. DynamoDB is no longer used or required for this project.
+
+Copy each environment backend example and fill in the bucket and region:
+
+```bash
+cp envs/dev/backend.hcl.example envs/dev/backend.hcl
+cp envs/prod/backend.hcl.example envs/prod/backend.hcl
+```
+
+Then initialize:
+
+```bash
+terraform -chdir=envs/dev init -backend-config=backend.hcl
+```
+
+## Local Workflow
+
+```bash
+make fmt
+make init ENV=dev
+make validate ENV=dev
+make plan ENV=dev
+make apply ENV=dev
+```
+
+Production follows the same commands with `ENV=prod`.
+
+## CI/CD Workflow
+
+- Pull requests run `terraform fmt`, `terraform validate`, Checkov scanning, and `terraform plan`.
+- Applies run only from `main` or manual dispatch.
+- GitHub environment protection should require approval for `prod`.
+- GitHub Actions uses AWS OIDC; no long-lived AWS keys are required.
+
+## Downstream Outputs
+
+Downstream repos should consume stable outputs instead of inferring resource names:
+
+- `cluster_name`
+- `cluster_endpoint`
+- `cluster_oidc_issuer_url`
+- `vpc_id`
+- `private_subnet_ids`
+- `public_subnet_ids`
+- `ecr_repository_urls`
+- `argocd_namespace`
+
+## GitOps Boundary
+
+This repo installs Argo CD, but does not configure service applications. A separate GitOps config repo should define:
+
+- environment namespaces
+- Argo CD projects and applications
+- app deployments
+- service ingress/routing manifests
+- app-specific config and sealed/external secret references
+
+Argo CD best practice is to keep application configuration in a separate Git repository from application source code, which gives cleaner separation, simpler auditing, and better control over who can change runtime state.
+
+## Safety Notes
+
+- Do not commit `terraform.tfvars`, backend files, state files, or plan files.
+- Keep AWS IAM role trust scoped to repository and protected environments.
+- Review plans before apply.
+- Prefer adding outputs over reaching into module internals from downstream repos.
+- Keep this repo free of service-specific Kubernetes resources.

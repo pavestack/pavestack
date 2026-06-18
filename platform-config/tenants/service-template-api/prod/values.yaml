@@ -1,0 +1,9 @@
+replicaCount: 2
+
+image:
+  repository: 123456789012.dkr.ecr.us-east-1.amazonaws.com/pavestack/service-template-api
+  tag: "0.1.0"
+
+env:
+  LOG_LEVEL: info
+  SERVICE_NAME: service-template-api

@@ -1,0 +1,30 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: service-template-api-dev
+  namespace: argocd
+  labels:
+    pavestack.io/tenant: service-template-api
+    pavestack.io/environment: dev
+spec:
+  project: pavestack
+  sources:
+    - repoURL: https://github.com/pavestack/pavestack.git
+      targetRevision: main
+      ref: values
+    - repoURL: https://github.com/pavestack/pavestack.git
+      targetRevision: main
+      path: service-template-api/deploy/helm/service-template-api
+      helm:
+        releaseName: service-template-api
+        valueFiles:
+          - $values/platform-config/tenants/service-template-api/dev/values.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: service-template-api
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

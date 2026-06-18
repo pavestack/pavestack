@@ -1,0 +1,145 @@
+name: service-template-api
+
+on:
+  pull_request:
+    paths:
+      - "service-template-api/**"
+      - ".github/workflows/service-template-api.yml"
+  push:
+    branches: ["main"]
+    paths:
+      - "service-template-api/**"
+      - ".github/workflows/service-template-api.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  id-token: write
+  pull-requests: write
+
+env:
+  SERVICE_NAME: service-template-api
+  SERVICE_DIR: service-template-api
+  ECR_REPOSITORY: pavestack/service-template-api
+  PLATFORM_CONFIG_PATH: platform-config/tenants/service-template-api
+
+jobs:
+  test-scan:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: service-template-api
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+          cache-dependency-path: service-template-api/go.sum
+
+      - name: Download modules
+        run: go mod download
+
+      - name: Unit tests
+        run: go test ./...
+
+      - name: Gitleaks secret scan
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Trivy filesystem scan
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: fs
+          scan-ref: service-template-api
+          severity: CRITICAL,HIGH
+          exit-code: 1
+
+      - name: Checkov Docker and Kubernetes scan
+        uses: bridgecrewio/checkov-action@v12
+        with:
+          directory: service-template-api
+          quiet: true
+
+  build-push-pr:
+    needs: test-scan
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    environment: dev
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+          cache-dependency-path: service-template-api/go.sum
+
+      - name: Compute image tag
+        id: meta
+        run: |
+          TAG="$(git rev-parse --short HEAD)"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push image
+        env:
+          REGISTRY: ${{ vars.ECR_REGISTRY }}
+          TAG: ${{ steps.meta.outputs.tag }}
+        run: |
+          IMAGE="${REGISTRY}/${{ env.ECR_REPOSITORY }}:${TAG}"
+          docker build -t "${IMAGE}" service-template-api
+          docker push "${IMAGE}"
+          echo "IMAGE=${IMAGE}" >> "$GITHUB_ENV"
+
+      - name: Trivy image scan
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: ${{ env.IMAGE }}
+          severity: CRITICAL,HIGH
+          exit-code: 1
+
+      - name: Update platform-config image tag
+        env:
+          TAG: ${{ steps.meta.outputs.tag }}
+        run: |
+          pip install --quiet pyyaml
+          python3 <<'PY'
+          import os, pathlib, yaml
+          tag = os.environ["TAG"]
+          for env in ("dev", "prod"):
+              path = pathlib.Path(f"platform-config/tenants/service-template-api/{env}/values.yaml")
+              if not path.exists():
+                  continue
+              data = yaml.safe_load(path.read_text()) or {}
+              data.setdefault("image", {})["tag"] = tag
+              path.write_text(yaml.safe_dump(data, sort_keys=False))
+          PY
+
+      - name: Create GitOps PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.meta.outputs.tag }}
+        run: |
+          BRANCH="chore/bump-${SERVICE_NAME}-${TAG}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "${BRANCH}"
+          git add platform-config/tenants/service-template-api
+          if git diff --cached --quiet; then
+            echo "No platform-config changes required."
+            exit 0
+          fi
+          git commit -m "chore(service-template-api): promote image ${TAG}"
+          git push -u origin "${BRANCH}"
+          gh pr create \
+            --title "chore(service-template-api): promote image ${TAG}" \
+            --body "Automated GitOps promotion for \`${SERVICE_NAME}\` image tag \`${TAG}\`. Argo CD reconciles after merge."

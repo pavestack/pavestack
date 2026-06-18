@@ -1,0 +1,78 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: pavestack-tenant-bootstrap-dev
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - git:
+        repoURL: https://github.com/pavestack/pavestack.git
+        revision: main
+        directories:
+          - path: platform-config/tenants/*/base
+  template:
+    metadata:
+      name: "{{ index .path.segments 2 }}-bootstrap-dev"
+    spec:
+      project: pavestack
+      source:
+        repoURL: https://github.com/pavestack/pavestack.git
+        targetRevision: main
+        path: "{{ .path.path }}"
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: "{{ index .path.segments 2 }}"
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
+
+---
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: pavestack-tenant-apps-dev
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - git:
+        repoURL: https://github.com/pavestack/pavestack.git
+        revision: main
+        files:
+          - path: platform-config/tenants/*/tenant.yaml
+        values:
+          tenant: "{{ index .path.segments 2 }}"
+          namespace: "{{ .namespace }}"
+          helmPath: "{{ .helmPath }}"
+          releaseName: "{{ .releaseName }}"
+  template:
+    metadata:
+      name: "{{ .values.tenant }}-api-dev"
+    spec:
+      project: pavestack
+      sources:
+        - repoURL: https://github.com/pavestack/pavestack.git
+          targetRevision: main
+          ref: values
+        - repoURL: https://github.com/pavestack/pavestack.git
+          targetRevision: main
+          path: "{{ .values.helmPath }}"
+          helm:
+            releaseName: "{{ .values.releaseName }}"
+            valueFiles:
+              - $values/platform-config/tenants/{{ .values.tenant }}/dev/values.yaml
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: "{{ .values.namespace }}"
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
