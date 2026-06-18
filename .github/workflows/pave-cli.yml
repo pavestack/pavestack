@@ -48,4 +48,4 @@ jobs:
         with:
           directory: pave
           quiet: true
-          soft_fail: true
+          config_file: .checkov.yaml

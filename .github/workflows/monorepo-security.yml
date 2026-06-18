@@ -17,22 +17,25 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
-      - uses: aquasecurity/trivy-action@476e4fdcdc675b65ce75e8c3440b48d7a494f0e5 # master
+      - name: Trivy config scan
+        uses: aquasecurity/trivy-action@master
         with:
-          scan-type: fs
+          scan-type: config
           scan-ref: .
           severity: CRITICAL,HIGH
+          trivyignores: .trivyignore
           exit-code: 1
 
   checkov-repo:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
-      - uses: bridgecrewio/checkov-action@fa9edf8f0a491c59a924ea6accd5bdcf07752cff # v12
+      - name: Checkov policy scan
+        uses: bridgecrewio/checkov-action@fa9edf8f0a491c59a924ea6accd5bdcf07752cff # v12
         with:
           directory: .
           quiet: true
-          soft_fail: true
+          config_file: .checkov.yaml
 
   tflint:
     runs-on: ubuntu-latest

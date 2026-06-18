@@ -55,7 +55,7 @@ jobs:
         with:
           directory: service-template-api
           quiet: true
-          soft_fail: true
+          config_file: .checkov.yaml
 
   build-push-pr:
     needs: test-scan
