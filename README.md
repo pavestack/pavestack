@@ -3,16 +3,37 @@
 </p>
 
 <p align="center">
-  <img src="assets/badges/gitops.svg" alt="Delivery: GitOps" />
-  <img src="assets/badges/security.svg" alt="Security: Default Deny" />
-  <img src="assets/badges/scaffold.svg" alt="Scaffold: Golden Path" />
+  <!-- Social Badges -->
+  <a href="https://github.com/pavestack/pavestack/stargazers"><img src="https://img.shields.io/github/stars/pavestack/pavestack?style=social" alt="Stars" /></a>
+  <a href="https://github.com/pavestack/pavestack/network/members"><img src="https://img.shields.io/github/forks/pavestack/pavestack?style=social" alt="Forks" /></a>
+  <br>
+  <!-- Status Badges -->
+  <a href="https://github.com/pavestack/pavestack/actions/workflows/monorepo-security.yml"><img src="https://github.com/pavestack/pavestack/actions/workflows/monorepo-security.yml/badge.svg" alt="Security Checks" /></a>
+  <a href="https://github.com/pavestack/pavestack/actions/workflows/platform-infra.yml"><img src="https://github.com/pavestack/pavestack/actions/workflows/platform-infra.yml/badge.svg" alt="Infrastructure CI" /></a>
+  <a href="https://github.com/pavestack/pavestack/actions/workflows/pave-cli.yml"><img src="https://github.com/pavestack/pavestack/actions/workflows/pave-cli.yml/badge.svg" alt="CLI CI" /></a>
+  <a href="https://codecov.io/gh/pavestack/pavestack"><img src="https://codecov.io/gh/pavestack/pavestack/branch/main/graph/badge.svg" alt="Code Coverage" /></a>
+  <a href="https://goreportcard.com/report/github.com/pavestack/pavestack"><img src="https://goreportcard.com/badge/github.com/pavestack/pavestack" alt="Go Report Card" /></a>
+  <img src="https://img.shields.io/github/last-commit/pavestack/pavestack" alt="Last Commit" />
+  <img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg" alt="License" />
 </p>
+
+<p align="center">
+  <a href="https://git.io/typing-svg"><img src="https://readme-typing-svg.herokuapp.com?font=Fira+Code&pause=1000&color=0366d6&center=true&vCenter=true&width=435&lines=Internal+Developer+Platform;GitOps+Delivery;Golden+Path+Scaffolding" alt="Typing SVG" /></a>
+</p>
+
+<h3 align="center">Tech Stack</h3>
+<p align="center">
+  <a href="https://skillicons.dev">
+    <img src="https://skillicons.dev/icons?i=go,nodejs,ts,terraform,docker,aws,kubernetes,githubactions&perline=8" alt="Tech Stack" />
+  </a>
+</p>
+
 
 <br />
 
 Pavestack is an Internal Developer Platform (IDP) MVP delivered as a monorepo. Platform teams operate shared infrastructure; product teams scaffold services via the golden path and deploy through GitOps.
 
-## Repository layout <img src="logo.svg" alt="PaveStack Logo" width="36" align="right" />
+## Repository layout
 
 | Directory | Role |
 |-----------|------|
@@ -26,16 +47,16 @@ Pavestack is an Internal Developer Platform (IDP) MVP delivered as a monorepo. P
 ## Architecture
 
 ```mermaid
-flowchart LR
-  Dev[Developer] --> Pave[pave CLI]
-  Pave --> Services[services/name-api]
-  Pave --> Config[platform-config/tenants]
-  CI[GitHub Actions] --> ECR[Amazon ECR]
-  CI --> PR[GitOps PR]
+graph LR
+  Dev("Developer") --> Pave("pave CLI")
+  Pave --> Services("services/name-api")
+  Pave --> Config("platform-config/tenants")
+  CI("GitHub Actions") --> ECR("Amazon ECR")
+  CI --> PR("GitOps PR")
   PR --> Config
-  Argo[Argo CD] --> EKS[Amazon EKS]
+  Argo("Argo CD") --> EKS("Amazon EKS")
   Config --> Argo
-  Portal[pavestack-portal] --> Catalog[catalog-info.yaml]
+  Portal("pavestack-portal") --> Catalog("catalog-info.yaml")
   Services --> Catalog
 ```
 

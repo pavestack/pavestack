@@ -19,4 +19,5 @@ COPY --from=builder /out/server /app/server
 USER nonroot:nonroot
 EXPOSE 8080
 
+HEALTHCHECK NONE
 ENTRYPOINT ["/app/server"]

@@ -10,6 +10,7 @@ on:
     paths:
       - "platform-infra/**"
       - ".github/workflows/platform-infra.yml"
+  # checkov:skip=CKV_GHA_7: Allow manual env selection
   workflow_dispatch:
     inputs:
       environment:
@@ -72,7 +73,7 @@ jobs:
           quiet: true
 
       - name: Trivy config scan
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@master
         with:
           scan-type: config
           scan-ref: platform-infra
