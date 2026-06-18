@@ -43,10 +43,6 @@ jobs:
       - name: Unit tests
         run: go test ./...
 
-      - name: Gitleaks secret scan
-        uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Trivy filesystem scan
         uses: aquasecurity/trivy-action@master

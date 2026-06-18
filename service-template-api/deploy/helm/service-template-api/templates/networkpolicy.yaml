@@ -2,6 +2,7 @@
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
+  namespace: {{ .Release.Namespace }}
   name: {{ include "service-template-api.fullname" . }}-allow-ingress
   labels:
     {{- include "service-template-api.labels" . | nindent 4 }}

@@ -24,6 +24,7 @@ This repository owns shared AWS infrastructure and Kubernetes bootstrap only. It
 ## Architecture Overview
 
 ```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'background': '#0d1117', 'primaryColor': '#161b22', 'primaryTextColor': '#c9d1d9', 'primaryBorderColor': '#58a6ff', 'lineColor': '#8b949e', 'secondaryColor': '#21262d', 'tertiaryColor': '#0d1117', 'clusterBkg': '#0d1117', 'clusterBorder': '#30363d', 'nodeBorder': '#30363d', 'edgeLabelBackground': '#0d1117', 'fontFamily': 'monospace'}}}%%
 flowchart LR
   GH[GitHub Actions + Environments] -->|assume role via OIDC| AWSIAM[AWS IAM OIDC Role]
 
@@ -95,8 +96,14 @@ flowchart LR
   EKSCL -->|cluster metadata| DOWN
   ARGOCD -->|namespace| DOWN
 
-  classDef module fill:#f8f9fa,stroke:#3399ff,stroke-width:1px;
+  classDef module fill:#161b22,stroke:#58a6ff,stroke-width:2px,color:#c9d1d9;
+  classDef default fill:#0d1117,stroke:#30363d,stroke-width:1px,color:#c9d1d9;
+  classDef aws fill:#0d1117,stroke:#ff7b72,stroke-width:2px,stroke-dasharray: 5 5,color:#c9d1d9;
+  classDef external fill:#21262d,stroke:#8957e5,stroke-width:2px,color:#c9d1d9;
+
   class Network,EKS,ECR_MODULE,ArgoCD module;
+  class AWS aws;
+  class GH,DOWN external;
 ```
 
 ## Repository Layout

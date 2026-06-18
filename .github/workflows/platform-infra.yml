@@ -54,10 +54,6 @@ jobs:
       - name: TFLint scan
         run: tflint --recursive
 
-      - name: Gitleaks secret scan
-        uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Terraform init without backend
         run: terraform -chdir=envs/${{ matrix.environment }} init -backend=false

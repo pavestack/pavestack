@@ -11,7 +11,6 @@
   <a href="https://github.com/pavestack/pavestack/actions/workflows/monorepo-security.yml"><img src="https://github.com/pavestack/pavestack/actions/workflows/monorepo-security.yml/badge.svg" alt="Security Checks" /></a>
   <a href="https://github.com/pavestack/pavestack/actions/workflows/platform-infra.yml"><img src="https://github.com/pavestack/pavestack/actions/workflows/platform-infra.yml/badge.svg" alt="Infrastructure CI" /></a>
   <a href="https://github.com/pavestack/pavestack/actions/workflows/pave-cli.yml"><img src="https://github.com/pavestack/pavestack/actions/workflows/pave-cli.yml/badge.svg" alt="CLI CI" /></a>
-  <a href="https://codecov.io/gh/pavestack/pavestack"><img src="https://codecov.io/gh/pavestack/pavestack/branch/main/graph/badge.svg" alt="Code Coverage" /></a>
   <a href="https://goreportcard.com/report/github.com/pavestack/pavestack"><img src="https://goreportcard.com/badge/github.com/pavestack/pavestack" alt="Go Report Card" /></a>
   <img src="https://img.shields.io/github/last-commit/pavestack/pavestack" alt="Last Commit" />
   <img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg" alt="License" />
@@ -46,19 +45,7 @@ Pavestack is an Internal Developer Platform (IDP) MVP delivered as a monorepo. P
 
 ## Architecture
 
-```mermaid
-graph LR
-  Dev("Developer") --> Pave("pave CLI")
-  Pave --> Services("services/name-api")
-  Pave --> Config("platform-config/tenants")
-  CI("GitHub Actions") --> ECR("Amazon ECR")
-  CI --> PR("GitOps PR")
-  PR --> Config
-  Argo("Argo CD") --> EKS("Amazon EKS")
-  Config --> Argo
-  Portal("pavestack-portal") --> Catalog("catalog-info.yaml")
-  Services --> Catalog
-```
+![Architecture Flowchart](https://mermaid.ink/img/eyJjb2RlIjoiZ3JhcGggTFJcbiAgQVtEZXZlbG9wZXJdIC0tPiBCW3BhdmUgQ0xJXVxuICBCIC0tPiBDW3NlcnZpY2VzL25hbWUtYXBpXVxuICBCIC0tPiBEW3BsYXRmb3JtLWNvbmZpZy90ZW5hbnRzXVxuICBFW0dpdEh1YiBBY3Rpb25zXSAtLT4gRltBbWF6b24gRUNSXVxuICBFIC0tPiBHW0dpdE9wcyBQUl1cbiAgRyAtLT4gRFxuICBIW0FyZ28gQ0RdIC0tPiBJW0FtYXpvbiBFS1NdXG4gIEQgLS0+IEhcbiAgSltwYXZlc3RhY2stcG9ydGFsXSAtLT4gS1tjYXRhbG9nLWluZm8ueWFtbF1cbiAgQyAtLT4gSyIsIm1lcm1haWQiOnsidGhlbWUiOiJkZWZhdWx0In19)
 
 ## Delivery model (GitOps)
 
