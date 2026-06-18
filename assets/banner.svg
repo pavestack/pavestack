@@ -1,0 +1,139 @@
+<svg width="1200" height="400" viewBox="0 0 1200 400" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Background -->
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a" />
+      <stop offset="100%" stop-color="#1e293b" />
+    </linearGradient>
+
+    <!-- Layer 1 Gradients -->
+    <linearGradient id="top_grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8" />
+      <stop offset="100%" stop-color="#c084fc" />
+    </linearGradient>
+    <linearGradient id="left_grad1" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#0ea5e9" />
+      <stop offset="100%" stop-color="#0284c7" />
+    </linearGradient>
+    <linearGradient id="right_grad1" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#a855f7" />
+      <stop offset="100%" stop-color="#7e22ce" />
+    </linearGradient>
+
+    <!-- Layer 2 Gradients -->
+    <linearGradient id="top_grad2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0ea5e9" />
+      <stop offset="100%" stop-color="#a855f7" />
+    </linearGradient>
+    <linearGradient id="left_grad2" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#0284c7" />
+      <stop offset="100%" stop-color="#0369a1" />
+    </linearGradient>
+    <linearGradient id="right_grad2" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#9333ea" />
+      <stop offset="100%" stop-color="#6b21a8" />
+    </linearGradient>
+
+    <!-- Layer 3 Gradients -->
+    <linearGradient id="top_grad3" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0284c7" />
+      <stop offset="100%" stop-color="#9333ea" />
+    </linearGradient>
+    <linearGradient id="left_grad3" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#0369a1" />
+      <stop offset="100%" stop-color="#075985" />
+    </linearGradient>
+    <linearGradient id="right_grad3" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#7e22ce" />
+      <stop offset="100%" stop-color="#581c87" />
+    </linearGradient>
+
+    <!-- Layer 4 Gradients -->
+    <linearGradient id="top_grad4" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0369a1" />
+      <stop offset="100%" stop-color="#7e22ce" />
+    </linearGradient>
+    <linearGradient id="left_grad4" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#075985" />
+      <stop offset="100%" stop-color="#082f49" />
+    </linearGradient>
+    <linearGradient id="right_grad4" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#581c87" />
+      <stop offset="100%" stop-color="#3b0764" />
+    </linearGradient>
+
+    <!-- Text Gradient -->
+    <linearGradient id="text_grad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="100%" stop-color="#93c5fd" />
+    </linearGradient>
+
+    <!-- Drop Shadow -->
+    <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="16" stdDeviation="20" flood-color="#000000" flood-opacity="0.5" />
+    </filter>
+  </defs>
+
+  <!-- Solid Background -->
+  <rect width="1200" height="400" fill="#0f172a" />
+
+  <!-- Grid decoration pattern in background -->
+  <g opacity="0.05">
+    <path d="M 0,50 L 1200,50 M 0,100 L 1200,100 M 0,150 L 1200,150 M 0,200 L 1200,200 M 0,250 L 1200,250 M 0,300 L 1200,300 M 0,350 L 1200,350" stroke="#94a3b8" stroke-width="1" />
+    <path d="M 100,0 L 100,400 M 200,0 L 200,400 M 300,0 L 300,400 M 400,0 L 400,400 M 500,0 L 500,400 M 600,0 L 600,400 M 700,0 L 700,400 M 800,0 L 800,400 M 900,0 L 900,400 M 1000,0 L 1000,400 M 1100,0 L 1100,400" stroke="#94a3b8" stroke-width="1" />
+  </g>
+
+  <!-- Stacked Logo (Centered vertically on the left side) -->
+  <g transform="translate(100, 38) scale(0.8)">
+    <!-- Layer 4 (Bottom) -->
+    <g filter="url(#shadow)">
+      <path d="M 136 194 L 272 262 L 136 330 L 0 262 Z" fill="url(#top_grad4)" stroke="#ffffff" stroke-opacity="0.15" stroke-width="1" stroke-linejoin="round" />
+      <path d="M 0 262 L 136 330 L 136 360 L 0 292 Z" fill="url(#left_grad4)" />
+      <path d="M 136 330 L 272 262 L 272 292 L 136 360 Z" fill="url(#right_grad4)" />
+    </g>
+
+    <!-- Layer 3 -->
+    <g filter="url(#shadow)">
+      <path d="M 136 144 L 272 212 L 136 280 L 0 212 Z" fill="url(#top_grad3)" stroke="#ffffff" stroke-opacity="0.25" stroke-width="1" stroke-linejoin="round" />
+      <path d="M 0 212 L 136 280 L 136 310 L 0 242 Z" fill="url(#left_grad3)" />
+      <path d="M 136 280 L 272 212 L 272 242 L 136 310 Z" fill="url(#right_grad3)" />
+    </g>
+
+    <!-- Layer 2 -->
+    <g filter="url(#shadow)">
+      <path d="M 136 94 L 272 162 L 136 230 L 0 162 Z" fill="url(#top_grad2)" stroke="#ffffff" stroke-opacity="0.35" stroke-width="1" stroke-linejoin="round" />
+      <path d="M 0 162 L 136 230 L 136 260 L 0 192 Z" fill="url(#left_grad2)" />
+      <path d="M 136 230 L 272 162 L 272 192 L 136 260 Z" fill="url(#right_grad2)" />
+    </g>
+
+    <!-- Layer 1 (Top) -->
+    <g filter="url(#shadow)">
+      <path d="M 136 44 L 272 112 L 136 180 L 0 112 Z" fill="url(#top_grad1)" stroke="#ffffff" stroke-opacity="0.5" stroke-width="1.5" stroke-linejoin="round" />
+      <path d="M 0 112 L 136 180 L 136 210 L 0 142 Z" fill="url(#left_grad1)" />
+      <path d="M 136 180 L 272 112 L 272 142 L 136 210 Z" fill="url(#right_grad1)" />
+    </g>
+  </g>
+
+  <!-- Text & Subtitle -->
+  <text x="420" y="180" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-weight="800" font-size="80" fill="url(#text_grad)" letter-spacing="-2">PaveStack</text>
+  <text x="425" y="235" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-weight="500" font-size="22" fill="#94a3b8" letter-spacing="-0.5">Production-Ready Internal Developer Platform Monorepo</text>
+
+  <!-- Tech details at the bottom of the banner -->
+  <g transform="translate(425, 275)" opacity="0.8">
+    <!-- Badge: GitOps -->
+    <rect x="0" y="0" width="90" height="24" rx="12" fill="#1e293b" stroke="#3b82f6" stroke-width="1" />
+    <text x="45" y="16" font-family="system-ui, sans-serif" font-size="11" font-weight="bold" fill="#3b82f6" text-anchor="middle">GITOPS</text>
+
+    <!-- Badge: Terraform -->
+    <rect x="105" y="0" width="105" height="24" rx="12" fill="#1e293b" stroke="#8b5cf6" stroke-width="1" />
+    <text x="157" y="16" font-family="system-ui, sans-serif" font-size="11" font-weight="bold" fill="#8b5cf6" text-anchor="middle">TERRAFORM</text>
+
+    <!-- Badge: Go -->
+    <rect x="225" y="0" width="60" height="24" rx="12" fill="#1e293b" stroke="#0ea5e9" stroke-width="1" />
+    <text x="255" y="16" font-family="system-ui, sans-serif" font-size="11" font-weight="bold" fill="#0ea5e9" text-anchor="middle">GO</text>
+
+    <!-- Badge: React -->
+    <rect x="298" y="0" width="75" height="24" rx="12" fill="#1e293b" stroke="#ec4899" stroke-width="1" />
+    <text x="335" y="16" font-family="system-ui, sans-serif" font-size="11" font-weight="bold" fill="#ec4899" text-anchor="middle">REACT</text>
+  </g>
+</svg>

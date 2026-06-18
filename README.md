@@ -1,8 +1,18 @@
-# Pavestack
+<p align="center">
+  <img src="assets/banner.svg" alt="PaveStack Banner" width="100%" />
+</p>
+
+<p align="center">
+  <img src="assets/badges/gitops.svg" alt="Delivery: GitOps" />
+  <img src="assets/badges/security.svg" alt="Security: Default Deny" />
+  <img src="assets/badges/scaffold.svg" alt="Scaffold: Golden Path" />
+</p>
+
+<br />
 
 Pavestack is an Internal Developer Platform (IDP) MVP delivered as a monorepo. Platform teams operate shared infrastructure; product teams scaffold services via the golden path and deploy through GitOps.
 
-## Repository layout
+## Repository layout <img src="logo.svg" alt="PaveStack Logo" width="36" align="right" />
 
 | Directory | Role |
 |-----------|------|
