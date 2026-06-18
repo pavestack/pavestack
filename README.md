@@ -11,7 +11,6 @@
   <a href="https://github.com/pavestack/pavestack/actions/workflows/monorepo-security.yml"><img src="https://github.com/pavestack/pavestack/actions/workflows/monorepo-security.yml/badge.svg" alt="Security Checks" /></a>
   <a href="https://github.com/pavestack/pavestack/actions/workflows/platform-infra.yml"><img src="https://github.com/pavestack/pavestack/actions/workflows/platform-infra.yml/badge.svg" alt="Infrastructure CI" /></a>
   <a href="https://github.com/pavestack/pavestack/actions/workflows/pave-cli.yml"><img src="https://github.com/pavestack/pavestack/actions/workflows/pave-cli.yml/badge.svg" alt="CLI CI" /></a>
-  <a href="https://goreportcard.com/report/github.com/pavestack/pavestack"><img src="https://goreportcard.com/badge/github.com/pavestack/pavestack" alt="Go Report Card" /></a>
   <img src="https://img.shields.io/github/last-commit/pavestack/pavestack" alt="Last Commit" />
   <img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg" alt="License" />
 </p>
