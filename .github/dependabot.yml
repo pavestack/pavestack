@@ -1,0 +1,22 @@
+version: 2
+updates:
+  - package-ecosystem: "gomod"
+    directory: "/pave"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "gomod"
+    directory: "/service-template-api"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "npm"
+    directory: "/pavestack-portal"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "terraform"
+    directory: "/platform-infra"
+    schedule:
+      interval: "weekly"
