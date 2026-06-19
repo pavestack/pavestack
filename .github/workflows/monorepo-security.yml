@@ -18,7 +18,7 @@ jobs:
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
       - name: Trivy config scan
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@476e4fdcdc675b65ce75e8c3440b48d7a494f0e5 # master
         with:
           scan-type: config
           scan-ref: .
