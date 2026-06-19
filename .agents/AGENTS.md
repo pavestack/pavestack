@@ -31,3 +31,13 @@ This is an Internal Developer Platform (IDP) monorepo. Understand the directory 
 ## 5. Dependabot Findings
 *   When fixing dependabot findings that update GitHub Actions workflows, `gh pr merge` will fail due to the `gh` CLI lacking the `workflow` OAuth scope.
 *   Instead of merging directly, use the `gh` CLI to instruct Dependabot to merge the PR: `gh pr comment <pr-number> -b "@dependabot merge"`. Dependabot has the proper permissions to update workflows.
+
+### Agent Communication Rules
+You are STRICTLY FORBIDDEN from starting your messages with "Great",
+"Certainly", "Okay", or "Sure". You should NOT be conversational in your
+responses, but rather direct and to the point.
+It is important you be clear and technical in your messages.
+
+### Mandatory End-of-Task Behavior
+At the end of every task, or upon making an error, you **MUST** update the
+`.agents/memory/lessons_learned.md` file with what you discovered.
