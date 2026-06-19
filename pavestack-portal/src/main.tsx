@@ -74,7 +74,7 @@ function IconPassing() {
 const RING_RADIUS = 40;
 const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
 
-function ScoreRing({ score, size = 80 }: { score: number; size?: number }) {
+export function ScoreRing({ score, size = 80 }: { score: number; size?: number }) {
   const color = scoreColor(score);
   const offset = scoreDashOffset(score, RING_CIRCUMFERENCE);
 
@@ -106,7 +106,7 @@ function ScoreRing({ score, size = 80 }: { score: number; size?: number }) {
 
 /* ────────────────────────────── Stat Card ──────────────────────────── */
 
-function StatCard({
+export function StatCard({
   icon,
   label,
   value,
@@ -133,7 +133,7 @@ function StatCard({
 
 /* ────────────────────────────── Criteria Row ──────────────────────────── */
 
-function CriteriaRow({ item }: { item: CatalogCriteria }) {
+export function CriteriaRow({ item }: { item: CatalogCriteria }) {
   const passing = item.status === "passing";
   return (
     <div className="flex items-center justify-between gap-3 py-1.5">
@@ -157,7 +157,7 @@ function CriteriaRow({ item }: { item: CatalogCriteria }) {
 
 /* ────────────────────────────── Environment Badge ──────────────────────────── */
 
-function EnvBadge({ env, status, health }: { env: string; status: string; health: string }) {
+export function EnvBadge({ env, status, health }: { env: string; status: string; health: string }) {
   const synced = status === "synced" || status === "Synced";
   const healthy = health === "healthy" || health === "Healthy";
   const allGood = synced && healthy;
@@ -185,7 +185,7 @@ function EnvBadge({ env, status, health }: { env: string; status: string; health
 
 /* ────────────────────────────── Service Card ──────────────────────────── */
 
-function ServiceCard({ service, index }: { service: CatalogService; index: number }) {
+export function ServiceCard({ service, index }: { service: CatalogService; index: number }) {
   const [expanded, setExpanded] = useState(false);
   const tier = scoreTier(service.scorecard.overall);
 
@@ -280,7 +280,7 @@ function ServiceCard({ service, index }: { service: CatalogService; index: numbe
 
 /* ────────────────────────────── Sort Selector ──────────────────────────── */
 
-function SortSelect({ value, onChange }: { value: SortKey; onChange: (v: SortKey) => void }) {
+export function SortSelect({ value, onChange }: { value: SortKey; onChange: (v: SortKey) => void }) {
   return (
     <select
       id="sort-select"
@@ -298,7 +298,7 @@ function SortSelect({ value, onChange }: { value: SortKey; onChange: (v: SortKey
 
 /* ────────────────────────────── Main App ──────────────────────────── */
 
-function App() {
+export function App() {
   const [data, setData] = useState<Catalog | null>(null);
   const [search, setSearch] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("name");
@@ -473,8 +473,11 @@ function App() {
 
 /* ────────────────────────────── Mount ──────────────────────────── */
 
-createRoot(document.getElementById("root") as HTMLElement).render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
-);
+const container = document.getElementById("root");
+if (container) {
+  createRoot(container).render(
+    <React.StrictMode>
+      <App />
+    </React.StrictMode>
+  );
+}

@@ -35,3 +35,17 @@ func TestReadyEndpoint(t *testing.T) {
 		t.Fatalf("expected 200, got %d", rec.Code)
 	}
 }
+
+func TestReadyEndpointNotReady(t *testing.T) {
+	cfg := config.Config{ServiceName: "test-service", Ready: false}
+	srv := server.New(cfg, logging.New("error"))
+
+	req := httptest.NewRequest(http.MethodGet, "/ready", nil)
+	rec := httptest.NewRecorder()
+	srv.Handler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusServiceUnavailable {
+		t.Fatalf("expected 503, got %d", rec.Code)
+	}
+}
+

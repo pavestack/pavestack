@@ -222,3 +222,39 @@ func TestWriteTenantManifestsBaseKustomization(t *testing.T) {
 		}
 	}
 }
+
+func TestCreatePullRequestMissingGitOrGh(t *testing.T) {
+	root := t.TempDir()
+	request := validate.ServiceRequest{
+		Name:     "payments",
+		Team:     "team-payments",
+		Database: false,
+	}
+
+	// Mock PATH to be empty so git or gh cannot be found
+	t.Setenv("PATH", "")
+
+	err := gitops.CreatePullRequest(root, request, "")
+	if err == nil {
+		t.Fatal("expected error when git/gh are not in PATH")
+	}
+}
+
+func TestCreatePullRequestFailsWhenNotGitRepo(t *testing.T) {
+	root := t.TempDir()
+	request := validate.ServiceRequest{
+		Name:     "payments",
+		Team:     "team-payments",
+		Database: false,
+	}
+
+	// Call it, git and gh should be in the actual PATH on this mac (or not, if not we still get error)
+	// If they are in PATH, it will fail because it's not a git repo.
+	// If they are not in PATH, it will fail because they are not found.
+	// Either way, an error must be returned.
+	err := gitops.CreatePullRequest(root, request, "")
+	if err == nil {
+		t.Fatal("expected error running CreatePullRequest in non-git directory")
+	}
+}
+

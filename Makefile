@@ -25,15 +25,19 @@ all: test pave build-portal
 test:
 	cd service-template-api && go test ./...
 	cd pave && go test ./...
+	cd tests && go test ./...
+	cd pavestack-portal && npm run test
 
 lint:
 	cd service-template-api && go vet ./...
 	cd pave && go vet ./...
+	cd tests && go vet ./...
 	cd pavestack-portal && npm ci --silent && npx tsc --noEmit
 
 fmt: infra-fmt
 	cd service-template-api && test -z "$$(gofmt -l .)" || (gofmt -d . && exit 1)
 	cd pave && test -z "$$(gofmt -l .)" || (gofmt -d . && exit 1)
+	cd tests && test -z "$$(gofmt -l .)" || (gofmt -d . && exit 1)
 
 pave:
 	cd pave && go build -ldflags="-X github.com/pavestack/pave/internal/cli.Version=$$(git describe --tags --always --dirty 2>/dev/null || echo dev)" -o ../bin/pave ./cmd/pave

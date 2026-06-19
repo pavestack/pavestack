@@ -38,6 +38,49 @@ func TestValidateServiceRequestRejectsInvalidName(t *testing.T) {
 	}
 }
 
+func TestValidateServiceRequestRejectsExistingServiceDir(t *testing.T) {
+	root := t.TempDir()
+	copySchema(t, root)
+
+	request := validate.ServiceRequest{
+		Name:     "payments",
+		Team:     "team-payments",
+		Database: false,
+	}
+
+	// Create service directory
+	serviceDir := filepath.Join(root, "services", "payments-api")
+	if err := os.MkdirAll(serviceDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := validate.ValidateServiceRequest(root, request); err == nil {
+		t.Fatal("expected validation error due to existing service dir")
+	}
+}
+
+func TestValidateServiceRequestRejectsExistingTenantDir(t *testing.T) {
+	root := t.TempDir()
+	copySchema(t, root)
+
+	request := validate.ServiceRequest{
+		Name:     "payments",
+		Team:     "team-payments",
+		Database: false,
+	}
+
+	// Create tenant directory
+	tenantDir := filepath.Join(root, "platform-config", "tenants", "payments")
+	if err := os.MkdirAll(tenantDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := validate.ValidateServiceRequest(root, request); err == nil {
+		t.Fatal("expected validation error due to existing tenant dir")
+	}
+}
+
+
 func copySchema(t *testing.T, root string) {
 	t.Helper()
 	schemaDir := filepath.Join(root, "pave", "schemas")
