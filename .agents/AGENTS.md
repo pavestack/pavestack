@@ -37,6 +37,3 @@ You are STRICTLY FORBIDDEN from starting your messages with "Great",
 responses, but rather direct and to the point.
 It is important you be clear and technical in your messages.
 
-### Mandatory End-of-Task Behavior
-At the end of every task, or upon making an error, you **MUST** update the
-`.agents/memory/lessons_learned.md` file with what you discovered.
