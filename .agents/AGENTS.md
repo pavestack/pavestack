@@ -29,8 +29,7 @@ This is an Internal Developer Platform (IDP) monorepo. Understand the directory 
 *   **Commit Messages**: We use Release Please for automated versioning. You **MUST** use Conventional Commits (e.g., `feat:`, `fix:`, `chore:`, `docs:`) for all commit messages so the changelog generates correctly.
 
 ## 5. Dependabot Findings
-*   When fixing dependabot findings that update GitHub Actions workflows, `gh pr merge` will fail due to the `gh` CLI lacking the `workflow` OAuth scope.
-*   Instead of merging directly, use the `gh` CLI to instruct Dependabot to merge the PR: `gh pr comment <pr-number> -b "@dependabot merge"`. Dependabot has the proper permissions to update workflows.
+*   When fixing dependabot findings, if `gh pr merge` fails, it is usually due to a merge conflict or branch protection rule rather than an OAuth scope limitation. Always check for and resolve conflicts before attempting to merge.
 
 ### Agent Communication Rules
 You are STRICTLY FORBIDDEN from starting your messages with "Great",
