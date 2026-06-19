@@ -36,9 +36,9 @@ jobs:
       run:
         working-directory: platform-infra
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
 
-      - uses: hashicorp/setup-terraform@v3
+      - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3
         with:
           terraform_version: 1.9.0
 
@@ -46,7 +46,7 @@ jobs:
         run: terraform fmt -recursive -check
 
       - name: Setup TFLint
-        uses: terraform-linters/setup-tflint@v4
+        uses: terraform-linters/setup-tflint@b480b8fcdaa6f2c577f8e4fa799e89e756bb7c93 # v6
 
       - name: TFLint init
         run: tflint --init
@@ -61,21 +61,21 @@ jobs:
       - name: Terraform validate
         run: terraform -chdir=envs/${{ matrix.environment }} validate
 
-      - name: Checkov IaC scan
-        uses: bridgecrewio/checkov-action@v12
+      - name: Checkov policy scan
+        uses: bridgecrewio/checkov-action@fa9edf8f0a491c59a924ea6accd5bdcf07752cff # v12
         with:
           directory: platform-infra
-          framework: terraform
           quiet: true
-          soft_fail: true
+          config_file: .checkov.yaml
 
       - name: Trivy config scan
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@476e4fdcdc675b65ce75e8c3440b48d7a494f0e5 # master
         with:
           scan-type: config
           scan-ref: platform-infra
           severity: CRITICAL,HIGH
-          exit-code: 0
+          exit-code: 1
+          trivyignores: .trivyignore
 
   plan:
     name: plan
@@ -91,13 +91,13 @@ jobs:
       run:
         working-directory: platform-infra
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
 
-      - uses: hashicorp/setup-terraform@v3
+      - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3
         with:
           terraform_version: 1.9.0
 
-      - uses: aws-actions/configure-aws-credentials@v6
+      - uses: aws-actions/configure-aws-credentials@e7f100cf4c008499ea8adda475de1042d6975c7b # v6
         with:
           role-to-assume: ${{ vars.AWS_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
@@ -139,15 +139,15 @@ jobs:
         if: github.event_name == 'workflow_dispatch' && matrix.environment != inputs.environment
         run: echo "Skipping ${{ matrix.environment }}"
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
         if: github.event_name != 'workflow_dispatch' || matrix.environment == inputs.environment
 
-      - uses: hashicorp/setup-terraform@v3
+      - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3
         if: github.event_name != 'workflow_dispatch' || matrix.environment == inputs.environment
         with:
           terraform_version: 1.9.0
 
-      - uses: aws-actions/configure-aws-credentials@v6
+      - uses: aws-actions/configure-aws-credentials@e7f100cf4c008499ea8adda475de1042d6975c7b # v6
         if: github.event_name != 'workflow_dispatch' || matrix.environment == inputs.environment
         with:
           role-to-assume: ${{ vars.AWS_ROLE_ARN }}

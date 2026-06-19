@@ -16,23 +16,26 @@ jobs:
   trivy-repo:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: aquasecurity/trivy-action@master
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+      - name: Trivy config scan
+        uses: aquasecurity/trivy-action@master
         with:
-          scan-type: fs
+          scan-type: config
           scan-ref: .
           severity: CRITICAL,HIGH
+          trivyignores: .trivyignore
           exit-code: 1
 
   checkov-repo:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: bridgecrewio/checkov-action@v12
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+      - name: Checkov policy scan
+        uses: bridgecrewio/checkov-action@fa9edf8f0a491c59a924ea6accd5bdcf07752cff # v12
         with:
           directory: .
           quiet: true
-          soft_fail: true
+          config_file: .checkov.yaml
 
   tflint:
     runs-on: ubuntu-latest
@@ -40,8 +43,8 @@ jobs:
       run:
         working-directory: platform-infra
     steps:
-      - uses: actions/checkout@v4
-      - uses: terraform-linters/setup-tflint@v4
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+      - uses: terraform-linters/setup-tflint@b480b8fcdaa6f2c577f8e4fa799e89e756bb7c93 # v6
       - name: TFLint init
         run: tflint --init
       - name: TFLint scan
