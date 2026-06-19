@@ -17,12 +17,23 @@ locals {
 }
 
 resource "aws_vpc" "this" {
+  # checkov:skip=CKV2_AWS_11:VPC flow logging is not required for the demo platform environments
   cidr_block           = var.vpc_cidr
   enable_dns_hostnames = true
   enable_dns_support   = true
 
   tags = merge(var.tags, {
     Name = var.name
+  })
+}
+
+resource "aws_default_security_group" "default" {
+  vpc_id = aws_vpc.this.id
+
+  # No ingress or egress rules defined, revoking all default rules.
+
+  tags = merge(var.tags, {
+    Name = "${var.name}-default-sg"
   })
 }
 

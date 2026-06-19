@@ -15,6 +15,20 @@ resource "aws_kms_key" "state" {
   description             = "KMS key for Pavestack Terraform state"
   deletion_window_in_days = 30
   enable_key_rotation     = true
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "Enable IAM User Permissions"
+        Effect = "Allow"
+        Principal = {
+          AWS = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"
+        }
+        Action   = "kms:*"
+        Resource = "*"
+      }
+    ]
+  })
 }
 
 resource "aws_kms_alias" "state" {
@@ -23,6 +37,8 @@ resource "aws_kms_alias" "state" {
 }
 
 resource "aws_s3_bucket" "state" {
+  # checkov:skip=CKV2_AWS_61:Lifecycle configuration is not required for remote state bucket
+  # checkov:skip=CKV2_AWS_62:Event notifications are not required for remote state bucket
   bucket        = local.bucket_name
   force_destroy = var.force_destroy
 }
