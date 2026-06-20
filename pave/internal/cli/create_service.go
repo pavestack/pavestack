@@ -9,6 +9,7 @@ import (
 	"github.com/pavestack/pave/internal/gitops"
 	"github.com/pavestack/pave/internal/scaffold"
 	"github.com/pavestack/pave/internal/validate"
+	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 )
 
@@ -46,7 +47,7 @@ func newCreateServiceCmd() *cobra.Command {
 				return err
 			}
 
-			serviceDir, err := scaffold.CreateService(root, request)
+			serviceDir, err := scaffold.CreateService(afero.NewOsFs(), root, request)
 			if err != nil {
 				return err
 			}

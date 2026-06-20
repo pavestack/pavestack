@@ -9,13 +9,26 @@ import (
 	"strings"
 
 	"github.com/pavestack/pave/internal/validate"
+	"github.com/spf13/afero"
 )
 
-func CreateService(repoRoot string, request validate.ServiceRequest) (string, error) {
+// WalkDir is a helper that walks the file tree rooted at root, calling fn for each file or directory
+// in the tree, including root, using the provided afero.Fs.
+func WalkDir(fsys afero.Fs, root string, fn fs.WalkDirFunc) error {
+	return afero.Walk(fsys, root, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return fn(path, nil, err)
+		}
+		return fn(path, fs.FileInfoToDirEntry(info), nil)
+	})
+}
+
+// CreateService scaffolds a new internal API service.
+func CreateService(fsys afero.Fs, repoRoot string, request validate.ServiceRequest) (string, error) {
 	templateDir := filepath.Join(repoRoot, "service-template-api")
 	serviceDir := filepath.Join(repoRoot, "services", request.Name+"-api")
 
-	if err := copyDir(templateDir, serviceDir); err != nil {
+	if err := copyDir(fsys, templateDir, serviceDir); err != nil {
 		return "", fmt.Errorf("copy template: %w", err)
 	}
 
@@ -27,30 +40,30 @@ func CreateService(repoRoot string, request validate.ServiceRequest) (string, er
 		"team-platform", request.Team,
 	}
 
-	if err := walkReplace(serviceDir, replacements); err != nil {
+	if err := walkReplace(fsys, serviceDir, replacements); err != nil {
 		return "", err
 	}
 
-	if err := renameHelmChart(serviceDir, request.Name); err != nil {
+	if err := renameHelmChart(fsys, serviceDir, request.Name); err != nil {
 		return "", err
 	}
 
 	if request.Database {
-		if err := appendDatabaseStub(serviceDir); err != nil {
+		if err := appendDatabaseStub(fsys, serviceDir); err != nil {
 			return "", err
 		}
 	}
 
 	metadataPath := filepath.Join(serviceDir, ".pavestack", "service-request.json")
-	if err := writeServiceMetadata(metadataPath, request); err != nil {
+	if err := writeServiceMetadata(fsys, metadataPath, request); err != nil {
 		return "", err
 	}
 
 	return serviceDir, nil
 }
 
-func copyDir(src, dst string) error {
-	return filepath.WalkDir(src, func(path string, entry fs.DirEntry, err error) error {
+func copyDir(fsys afero.Fs, src, dst string) error {
+	return WalkDir(fsys, src, func(path string, entry fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
@@ -62,14 +75,14 @@ func copyDir(src, dst string) error {
 		target := filepath.Join(dst, rel)
 
 		if entry.IsDir() {
-			return os.MkdirAll(target, 0o755)
+			return fsys.MkdirAll(target, 0o755)
 		}
 
 		if shouldSkip(rel) {
 			return nil
 		}
 
-		return copyFile(path, target)
+		return copyFile(fsys, path, target)
 	})
 }
 
@@ -83,18 +96,18 @@ func shouldSkip(rel string) bool {
 	return false
 }
 
-func copyFile(src, dst string) error {
-	if err := os.MkdirAll(filepath.Dir(dst), 0o755); err != nil {
+func copyFile(fsys afero.Fs, src, dst string) error {
+	if err := fsys.MkdirAll(filepath.Dir(dst), 0o755); err != nil {
 		return err
 	}
 
-	in, err := os.Open(src)
+	in, err := fsys.Open(src)
 	if err != nil {
 		return err
 	}
 	defer in.Close()
 
-	out, err := os.OpenFile(dst, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o644)
+	out, err := fsys.OpenFile(dst, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o644)
 	if err != nil {
 		return err
 	}
@@ -104,13 +117,13 @@ func copyFile(src, dst string) error {
 	return err
 }
 
-func walkReplace(root string, replacements []string) error {
-	return filepath.WalkDir(root, func(path string, entry fs.DirEntry, err error) error {
+func walkReplace(fsys afero.Fs, root string, replacements []string) error {
+	return WalkDir(fsys, root, func(path string, entry fs.DirEntry, err error) error {
 		if err != nil || entry.IsDir() {
 			return err
 		}
 
-		data, err := os.ReadFile(path)
+		data, err := afero.ReadFile(fsys, path)
 		if err != nil {
 			return err
 		}
@@ -122,23 +135,23 @@ func walkReplace(root string, replacements []string) error {
 		if newContent == content {
 			return nil
 		}
-		return os.WriteFile(path, []byte(newContent), 0o644)
+		return afero.WriteFile(fsys, path, []byte(newContent), 0o644)
 	})
 }
 
-func renameHelmChart(serviceDir, name string) error {
+func renameHelmChart(fsys afero.Fs, serviceDir, name string) error {
 	oldChart := filepath.Join(serviceDir, "deploy", "helm", "service-template-api")
 	newChart := filepath.Join(serviceDir, "deploy", "helm", name+"-api")
-	if err := os.Rename(oldChart, newChart); err != nil {
+	if err := fsys.Rename(oldChart, newChart); err != nil {
 		return fmt.Errorf("rename helm chart: %w", err)
 	}
 	return nil
 }
 
-func appendDatabaseStub(serviceDir string) error {
+func appendDatabaseStub(fsys afero.Fs, serviceDir string) error {
 	readme := filepath.Join(serviceDir, "README.md")
 	content := "\n\n## Database\n\nThis service requested a managed database. Provision credentials via the platform secrets workflow.\n"
-	f, err := os.OpenFile(readme, os.O_APPEND|os.O_WRONLY, 0o644)
+	f, err := fsys.OpenFile(readme, os.O_APPEND|os.O_WRONLY, 0o644)
 	if err != nil {
 		return err
 	}
@@ -147,8 +160,8 @@ func appendDatabaseStub(serviceDir string) error {
 	return err
 }
 
-func writeServiceMetadata(path string, request validate.ServiceRequest) error {
-	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+func writeServiceMetadata(fsys afero.Fs, path string, request validate.ServiceRequest) error {
+	if err := fsys.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return err
 	}
 
@@ -158,5 +171,5 @@ func writeServiceMetadata(path string, request validate.ServiceRequest) error {
   "database": %t
 }
 `, request.Name, request.Team, request.Database)
-	return os.WriteFile(path, []byte(payload), 0o644)
+	return afero.WriteFile(fsys, path, []byte(payload), 0o644)
 }

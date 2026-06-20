@@ -1,18 +1,19 @@
 package scaffold_test
 
 import (
-	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/pavestack/pave/internal/scaffold"
 	"github.com/pavestack/pave/internal/validate"
+	"github.com/spf13/afero"
 )
 
-func setupRepoRoot(t *testing.T) string {
+func setupRepoRoot(t *testing.T) (afero.Fs, string) {
 	t.Helper()
-	root := t.TempDir()
+	fsys := afero.NewMemMapFs()
+	root := "/workspace"
 
 	templateDir := filepath.Join(root, "service-template-api")
 	dirs := []string{
@@ -21,7 +22,7 @@ func setupRepoRoot(t *testing.T) string {
 		filepath.Join(templateDir, "deploy", "helm", "service-template-api", "templates"),
 	}
 	for _, dir := range dirs {
-		if err := os.MkdirAll(dir, 0o755); err != nil {
+		if err := fsys.MkdirAll(dir, 0o755); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -65,23 +66,23 @@ env:
 	}
 
 	for path, content := range files {
-		if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+		if err := afero.WriteFile(fsys, path, []byte(content), 0o644); err != nil {
 			t.Fatal(err)
 		}
 	}
 
 	// Create dirs expected by pave repoRoot detection
 	for _, name := range []string{"platform-config", "pave"} {
-		if err := os.MkdirAll(filepath.Join(root, name), 0o755); err != nil {
+		if err := fsys.MkdirAll(filepath.Join(root, name), 0o755); err != nil {
 			t.Fatal(err)
 		}
 	}
 
-	return root
+	return fsys, root
 }
 
 func TestCreateServiceCopiesTemplate(t *testing.T) {
-	root := setupRepoRoot(t)
+	fsys, root := setupRepoRoot(t)
 
 	request := validate.ServiceRequest{
 		Name:     "payments",
@@ -89,7 +90,7 @@ func TestCreateServiceCopiesTemplate(t *testing.T) {
 		Database: false,
 	}
 
-	serviceDir, err := scaffold.CreateService(root, request)
+	serviceDir, err := scaffold.CreateService(fsys, root, request)
 	if err != nil {
 		t.Fatalf("CreateService failed: %v", err)
 	}
@@ -99,13 +100,13 @@ func TestCreateServiceCopiesTemplate(t *testing.T) {
 		t.Errorf("expected service dir %s, got %s", expected, serviceDir)
 	}
 
-	if _, err := os.Stat(serviceDir); err != nil {
+	if _, err := fsys.Stat(serviceDir); err != nil {
 		t.Fatalf("service directory does not exist: %v", err)
 	}
 }
 
 func TestCreateServiceReplaceNames(t *testing.T) {
-	root := setupRepoRoot(t)
+	fsys, root := setupRepoRoot(t)
 
 	request := validate.ServiceRequest{
 		Name:     "payments",
@@ -113,13 +114,13 @@ func TestCreateServiceReplaceNames(t *testing.T) {
 		Database: false,
 	}
 
-	serviceDir, err := scaffold.CreateService(root, request)
+	serviceDir, err := scaffold.CreateService(fsys, root, request)
 	if err != nil {
 		t.Fatalf("CreateService failed: %v", err)
 	}
 
 	// Check go.mod has replaced module path
-	gomod, err := os.ReadFile(filepath.Join(serviceDir, "go.mod"))
+	gomod, err := afero.ReadFile(fsys, filepath.Join(serviceDir, "go.mod"))
 	if err != nil {
 		t.Fatalf("failed to read go.mod: %v", err)
 	}
@@ -128,7 +129,7 @@ func TestCreateServiceReplaceNames(t *testing.T) {
 	}
 
 	// Check catalog-info.yaml has replaced owner
-	catalog, err := os.ReadFile(filepath.Join(serviceDir, "catalog-info.yaml"))
+	catalog, err := afero.ReadFile(fsys, filepath.Join(serviceDir, "catalog-info.yaml"))
 	if err != nil {
 		t.Fatalf("failed to read catalog-info.yaml: %v", err)
 	}
@@ -138,7 +139,7 @@ func TestCreateServiceReplaceNames(t *testing.T) {
 }
 
 func TestCreateServiceRenamesHelmChart(t *testing.T) {
-	root := setupRepoRoot(t)
+	fsys, root := setupRepoRoot(t)
 
 	request := validate.ServiceRequest{
 		Name:     "payments",
@@ -146,24 +147,24 @@ func TestCreateServiceRenamesHelmChart(t *testing.T) {
 		Database: false,
 	}
 
-	serviceDir, err := scaffold.CreateService(root, request)
+	serviceDir, err := scaffold.CreateService(fsys, root, request)
 	if err != nil {
 		t.Fatalf("CreateService failed: %v", err)
 	}
 
 	newChart := filepath.Join(serviceDir, "deploy", "helm", "payments-api")
-	if _, err := os.Stat(newChart); err != nil {
+	if _, err := fsys.Stat(newChart); err != nil {
 		t.Fatalf("helm chart not renamed: %v", err)
 	}
 
 	oldChart := filepath.Join(serviceDir, "deploy", "helm", "service-template-api")
-	if _, err := os.Stat(oldChart); err == nil {
+	if _, err := fsys.Stat(oldChart); err == nil {
 		t.Error("old helm chart directory still exists")
 	}
 }
 
 func TestCreateServiceWithDatabase(t *testing.T) {
-	root := setupRepoRoot(t)
+	fsys, root := setupRepoRoot(t)
 
 	request := validate.ServiceRequest{
 		Name:     "orders",
@@ -171,12 +172,12 @@ func TestCreateServiceWithDatabase(t *testing.T) {
 		Database: true,
 	}
 
-	serviceDir, err := scaffold.CreateService(root, request)
+	serviceDir, err := scaffold.CreateService(fsys, root, request)
 	if err != nil {
 		t.Fatalf("CreateService failed: %v", err)
 	}
 
-	readme, err := os.ReadFile(filepath.Join(serviceDir, "README.md"))
+	readme, err := afero.ReadFile(fsys, filepath.Join(serviceDir, "README.md"))
 	if err != nil {
 		t.Fatalf("failed to read README: %v", err)
 	}
@@ -186,7 +187,7 @@ func TestCreateServiceWithDatabase(t *testing.T) {
 }
 
 func TestCreateServiceWritesMetadata(t *testing.T) {
-	root := setupRepoRoot(t)
+	fsys, root := setupRepoRoot(t)
 
 	request := validate.ServiceRequest{
 		Name:     "payments",
@@ -194,13 +195,13 @@ func TestCreateServiceWritesMetadata(t *testing.T) {
 		Database: false,
 	}
 
-	serviceDir, err := scaffold.CreateService(root, request)
+	serviceDir, err := scaffold.CreateService(fsys, root, request)
 	if err != nil {
 		t.Fatalf("CreateService failed: %v", err)
 	}
 
 	metaPath := filepath.Join(serviceDir, ".pavestack", "service-request.json")
-	data, err := os.ReadFile(metaPath)
+	data, err := afero.ReadFile(fsys, metaPath)
 	if err != nil {
 		t.Fatalf("metadata not written: %v", err)
 	}
