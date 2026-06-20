@@ -8,8 +8,8 @@ import {
   EnvBadge,
   SortSelect,
   ServiceCard,
-  App
-} from "./main";
+} from "./app/components";
+import { App } from "./app";
 import { CatalogService } from "./lib/catalog";
 
 const mockService: CatalogService = {
