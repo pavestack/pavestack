@@ -23,6 +23,9 @@
 | 3 | Filesystem Seam for Scaffold (R3) | Refactor scaffold.go to accept filesystem interface. Use in-memory filesystem in tests. | none | DONE |
 | 4 | CLI Interactive Prompting Seam (R4) | Accept io.Reader in promptMissing() to make it testable. | none | DONE |
 | 5 | Consolidate Test Workspace Setup (R5) | Consolidate duplicated test setup logic to internal/testutil.SetupWorkspace. | M3, M4 | DONE |
+| 6 | Deepen Validation in Pave (R1) | Extract Validator struct with afero.Fs filesystem seam in validate.go. Add tests using in-memory fs. | none | DONE |
+| 7 | Extract App module in service-template-api (R2) | Extract lifecycle logic from main.go to App module in internal/app/app.go. | none | DONE |
+| 8 | Replace regex YAML parsing in pavestack-portal (R3) | Replace regex-based YAML parser in generate-catalog.mjs with js-yaml library. | none | DONE |
 
 ## Interface Contracts
 ### Gitops Renderer ↔ VersionControl
@@ -31,3 +34,10 @@
 
 ### Scaffold ↔ Filesystem Seam
 - Scaffold operations (directory creation, file copying, string replacements) must interact via an injected filesystem interface (`io/fs.FS` or `afero.Fs`) rather than the native `os` package.
+
+### Validator ↔ Filesystem Seam
+- Validator operations (schema reading, directory checks) must interact via an injected `afero.Fs` interface instead of the direct `os` package.
+
+### App Lifecycle Seam
+- The `App` module exposes a `Run(ctx context.Context) error` method that coordinates server startup, telemetry initialization, logging, signal handling, and graceful shutdown.
+

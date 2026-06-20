@@ -4,10 +4,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"os"
 	"path/filepath"
 
 	"github.com/santhosh-tekuri/jsonschema/v5"
+	"github.com/spf13/afero"
 )
 
 type ServiceRequest struct {
@@ -16,26 +16,32 @@ type ServiceRequest struct {
 	Database bool   `json:"database"`
 }
 
-func ValidateServiceRequest(repoRoot string, request ServiceRequest) error {
-	payload, err := json.Marshal(request)
-	if err != nil {
-		return fmt.Errorf("marshal request: %w", err)
-	}
+type Validator struct {
+	fs     afero.Fs
+	schema *jsonschema.Schema
+}
 
-	schemaPath := filepath.Join(repoRoot, "pave", "schemas", "service-request.schema.json")
-	schemaBytes, err := os.ReadFile(schemaPath)
-	if err != nil {
-		return fmt.Errorf("load schema: %w", err)
-	}
-
+func NewValidator(fs afero.Fs, schemaBytes []byte) (*Validator, error) {
 	compiler := jsonschema.NewCompiler()
 	if err := compiler.AddResource("service-request.schema.json", bytes.NewReader(schemaBytes)); err != nil {
-		return fmt.Errorf("compile schema: %w", err)
+		return nil, fmt.Errorf("compile schema: %w", err)
 	}
 
 	schema, err := compiler.Compile("service-request.schema.json")
 	if err != nil {
-		return fmt.Errorf("compile schema: %w", err)
+		return nil, fmt.Errorf("compile schema: %w", err)
+	}
+
+	return &Validator{
+		fs:     fs,
+		schema: schema,
+	}, nil
+}
+
+func (v *Validator) Validate(repoRoot string, request ServiceRequest) error {
+	payload, err := json.Marshal(request)
+	if err != nil {
+		return fmt.Errorf("marshal request: %w", err)
 	}
 
 	var document any
@@ -43,24 +49,40 @@ func ValidateServiceRequest(repoRoot string, request ServiceRequest) error {
 		return fmt.Errorf("decode request: %w", err)
 	}
 
-	if err := schema.Validate(document); err != nil {
+	if err := v.schema.Validate(document); err != nil {
 		return fmt.Errorf("request validation failed: %w", err)
 	}
 
 	serviceDir := filepath.Join(repoRoot, "services", request.Name+"-api")
-	if pathExists(serviceDir) {
+	if pathExists(v.fs, serviceDir) {
 		return fmt.Errorf("service directory already exists: %s", serviceDir)
 	}
 
 	tenantDir := filepath.Join(repoRoot, "platform-config", "tenants", request.Name)
-	if pathExists(tenantDir) {
+	if pathExists(v.fs, tenantDir) {
 		return fmt.Errorf("tenant already exists: %s", tenantDir)
 	}
 
 	return nil
 }
 
-func pathExists(path string) bool {
-	_, err := os.Stat(path)
+func ValidateServiceRequest(repoRoot string, request ServiceRequest) error {
+	fs := afero.NewOsFs()
+	schemaPath := filepath.Join(repoRoot, "pave", "schemas", "service-request.schema.json")
+	schemaBytes, err := afero.ReadFile(fs, schemaPath)
+	if err != nil {
+		return fmt.Errorf("load schema: %w", err)
+	}
+
+	v, err := NewValidator(fs, schemaBytes)
+	if err != nil {
+		return err
+	}
+
+	return v.Validate(repoRoot, request)
+}
+
+func pathExists(fs afero.Fs, path string) bool {
+	_, err := fs.Stat(path)
 	return err == nil
 }

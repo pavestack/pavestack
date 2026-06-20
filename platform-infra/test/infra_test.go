@@ -23,13 +23,13 @@ type PlannedValues struct {
 }
 
 type RootModule struct {
-	Resources    []Resource     `json:"resources"`
+	Resources    []Resource    `json:"resources"`
 	ChildModules []ChildModule `json:"child_modules"`
 }
 
 type ChildModule struct {
-	Address      string         `json:"address"`
-	Resources    []Resource     `json:"resources"`
+	Address      string        `json:"address"`
+	Resources    []Resource    `json:"resources"`
 	ChildModules []ChildModule `json:"child_modules"`
 }
 

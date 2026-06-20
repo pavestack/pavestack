@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"path/filepath"
 	"strings"
 
 	"github.com/pavestack/pave/internal/gitops"
@@ -43,7 +44,17 @@ func newCreateServiceCmd() *cobra.Command {
 				Team:     opts.Team,
 				Database: opts.Database,
 			}
-			if err := validate.ValidateServiceRequest(root, request); err != nil {
+			fs := afero.NewOsFs()
+			schemaPath := filepath.Join(root, "pave", "schemas", "service-request.schema.json")
+			schemaBytes, err := afero.ReadFile(fs, schemaPath)
+			if err != nil {
+				return fmt.Errorf("load schema: %w", err)
+			}
+			v, err := validate.NewValidator(fs, schemaBytes)
+			if err != nil {
+				return err
+			}
+			if err := v.Validate(root, request); err != nil {
 				return err
 			}
 
