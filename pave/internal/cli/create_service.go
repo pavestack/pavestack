@@ -3,7 +3,7 @@ package cli
 import (
 	"bufio"
 	"fmt"
-	"os"
+	"io"
 	"strings"
 
 	"github.com/pavestack/pave/internal/gitops"
@@ -29,7 +29,7 @@ func newCreateServiceCmd() *cobra.Command {
 		Short: "Scaffold a new internal API service and GitOps manifests",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			databaseProvided := cmd.Flags().Changed("database")
-			if err := promptMissing(opts, databaseProvided); err != nil {
+			if err := promptMissing(cmd.InOrStdin(), opts, databaseProvided); err != nil {
 				return err
 			}
 
@@ -79,8 +79,8 @@ func newCreateServiceCmd() *cobra.Command {
 	return cmd
 }
 
-func promptMissing(opts *createServiceOptions, databaseProvided bool) error {
-	reader := bufio.NewReader(os.Stdin)
+func promptMissing(in io.Reader, opts *createServiceOptions, databaseProvided bool) error {
+	reader := bufio.NewReader(in)
 
 	if opts.Name == "" {
 		fmt.Print("Service name: ")
