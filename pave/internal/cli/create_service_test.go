@@ -45,7 +45,7 @@ func setupTestWorkspace(t *testing.T) string {
 	}
 
 	files := map[string]string{
-		filepath.Join(templateDir, "go.mod"):   "module github.com/pavestack/service-template-api\n\ngo 1.23\n",
+		filepath.Join(templateDir, "go.mod"):    "module github.com/pavestack/service-template-api\n\ngo 1.23\n",
 		filepath.Join(templateDir, "README.md"): "# service-template-api\n",
 		filepath.Join(templateDir, "cmd", "server", "main.go"): `package main
 func main() {}

@@ -80,7 +80,6 @@ func TestValidateServiceRequestRejectsExistingTenantDir(t *testing.T) {
 	}
 }
 
-
 func copySchema(t *testing.T, root string) {
 	t.Helper()
 	schemaDir := filepath.Join(root, "pave", "schemas")
