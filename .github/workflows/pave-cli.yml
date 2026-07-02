@@ -62,3 +62,17 @@ jobs:
           directory: pave
           quiet: true
           config_file: .checkov.yaml
+
+      # pave-api isn't deployed anywhere yet (no platform-config/tenants/pave-api),
+      # so there's no registry to push to or GitOps promotion to open - this
+      # just proves the Dockerfile builds and the resulting image is clean.
+      # See pave/Dockerfile's own comment for why it ships without git/gh.
+      - name: Build pave-api image
+        run: docker build -t pave-api:ci -f Dockerfile .
+
+      - name: Trivy image scan
+        uses: aquasecurity/trivy-action@cf5c088a69634cd13ccddc735d7926162c31f9a6 # master
+        with:
+          image-ref: pave-api:ci
+          severity: CRITICAL,HIGH
+          exit-code: 1

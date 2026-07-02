@@ -119,6 +119,21 @@ func TestHealthz(t *testing.T) {
 	}
 }
 
+func TestOpenAPISpecIsServed(t *testing.T) {
+	srv, _ := newTestServer(t)
+	rec := doJSON(t, srv.Handler(), http.MethodGet, "/api/v1/openapi.json", nil)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", rec.Code)
+	}
+	var doc map[string]any
+	if err := json.Unmarshal(rec.Body.Bytes(), &doc); err != nil {
+		t.Fatalf("expected valid JSON: %v", err)
+	}
+	if doc["openapi"] == nil {
+		t.Error("expected an 'openapi' version field in the served spec")
+	}
+}
+
 func TestListServicesFindsTemplate(t *testing.T) {
 	srv, _ := newTestServer(t)
 	rec := doJSON(t, srv.Handler(), http.MethodGet, "/api/v1/services", nil)

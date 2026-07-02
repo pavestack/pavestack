@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/pavestack/pave/api"
 	"github.com/pavestack/pave/internal/auth"
 	"github.com/pavestack/pave/internal/cost"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
@@ -122,6 +123,7 @@ func (s *Server) routes() {
 	// reads behind auth wouldn't add real confidentiality - see
 	// AGENTS.md's "Portal data model" section.
 	s.mux.HandleFunc("GET /healthz", s.handleHealthz)
+	s.mux.HandleFunc("GET /api/v1/openapi.json", s.handleOpenAPI)
 	s.mux.HandleFunc("GET /api/v1/services", s.handleListServices)
 	s.mux.HandleFunc("GET /api/v1/services/{name}", s.handleGetService)
 	s.mux.HandleFunc("GET /api/v1/jobs/{id}", s.handleGetJob)
@@ -190,6 +192,16 @@ func writeError(w http.ResponseWriter, status int, err error) {
 
 func (s *Server) handleHealthz(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+}
+
+func (s *Server) handleOpenAPI(w http.ResponseWriter, r *http.Request) {
+	spec, err := api.OpenAPIJSON()
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, errInternal)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	_, _ = w.Write(spec)
 }
 
 func (s *Server) handleListServices(w http.ResponseWriter, r *http.Request) {
