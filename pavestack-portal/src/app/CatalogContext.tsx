@@ -43,7 +43,11 @@ export function CatalogProvider({ children }: { children: React.ReactNode }) {
 
   const reload = useCallback(() => setNonce((n) => n + 1), []);
 
-  return <CatalogContext.Provider value={{ catalog, loading, error, reload }}>{children}</CatalogContext.Provider>;
+  return (
+    <CatalogContext.Provider value={{ catalog, loading, error, reload }}>
+      {children}
+    </CatalogContext.Provider>
+  );
 }
 
 export function useCatalog(): CatalogContextValue {

@@ -129,7 +129,11 @@ export type CostEstimate = {
   disclaimer: string;
 };
 
-export function getCostEstimate(params: { tier: string; exposure: string; database: boolean }): Promise<CostEstimate> {
+export function getCostEstimate(params: {
+  tier: string;
+  exposure: string;
+  database: boolean;
+}): Promise<CostEstimate> {
   const query = new URLSearchParams({
     tier: params.tier,
     exposure: params.exposure,

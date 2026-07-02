@@ -14,7 +14,10 @@ export function ScoreRing({ score, size = 80 }: { score: number; size?: number }
   const offset = scoreDashOffset(score, RING_CIRCUMFERENCE);
 
   return (
-    <div className="relative inline-flex items-center justify-center" style={{ width: size, height: size }}>
+    <div
+      className="relative inline-flex items-center justify-center"
+      style={{ width: size, height: size }}
+    >
       <svg viewBox="0 0 100 100" className="score-ring" width={size} height={size}>
         <circle cx="50" cy="50" r={RING_RADIUS} className="score-ring-track" />
         <circle
@@ -75,12 +78,18 @@ export function CriteriaRow({ item }: { item: CatalogCriteria }) {
         </span>
         <span className="text-sm text-pave-text-secondary truncate">{item.label}</span>
         {item.evidence && (
-          <span className="text-xs text-pave-text-muted truncate font-mono hidden sm:inline">· {item.evidence}</span>
+          <span className="text-xs text-pave-text-muted truncate font-mono hidden sm:inline">
+            · {item.evidence}
+          </span>
         )}
       </div>
       <div className="flex items-center gap-2 shrink-0">
-        <span className={`badge text-[10px] ${passing ? "badge-success" : "badge-danger"}`}>{item.status}</span>
-        <span className="text-xs text-pave-text-muted tabular-nums w-8 text-right">{item.weight}%</span>
+        <span className={`badge text-[10px] ${passing ? "badge-success" : "badge-danger"}`}>
+          {item.status}
+        </span>
+        <span className="text-xs text-pave-text-muted tabular-nums w-8 text-right">
+          {item.weight}%
+        </span>
       </div>
     </div>
   );
@@ -106,10 +115,14 @@ export function EnvBadge({
   return (
     <div
       className={`flex items-center gap-2 rounded-lg px-3 py-2 text-xs border ${
-        allGood ? "bg-pave-success/5 border-pave-success/20" : "bg-pave-warning/5 border-pave-warning/20"
+        allGood
+          ? "bg-pave-success/5 border-pave-success/20"
+          : "bg-pave-warning/5 border-pave-warning/20"
       }`}
     >
-      <span className={`w-2 h-2 rounded-full shrink-0 ${allGood ? "bg-pave-success animate-pulse-slow" : "bg-pave-warning"}`} />
+      <span
+        className={`w-2 h-2 rounded-full shrink-0 ${allGood ? "bg-pave-success animate-pulse-slow" : "bg-pave-warning"}`}
+      />
       <span className="font-semibold text-pave-text uppercase">{env}</span>
       <span className={allGood ? "text-pave-success" : "text-pave-warning"}>
         {status} · {health}
@@ -121,7 +134,13 @@ export function EnvBadge({
 
 /* ────────────────────────────── Sort Selector ──────────────────────────── */
 
-export function SortSelect({ value, onChange }: { value: SortKey; onChange: (v: SortKey) => void }) {
+export function SortSelect({
+  value,
+  onChange,
+}: {
+  value: SortKey;
+  onChange: (v: SortKey) => void;
+}) {
   return (
     <select
       id="sort-select"
@@ -142,7 +161,8 @@ export function SortSelect({ value, onChange }: { value: SortKey; onChange: (v: 
 
 export function TierBadge({ tier }: { tier: Tier }) {
   if (!tier) return <span className="badge badge-neutral">no tier set</span>;
-  const style = tier === "tier-1" ? "badge-danger" : tier === "tier-2" ? "badge-accent" : "badge-neutral";
+  const style =
+    tier === "tier-1" ? "badge-danger" : tier === "tier-2" ? "badge-accent" : "badge-neutral";
   return <span className={`badge ${style}`}>{tier}</span>;
 }
 
@@ -169,7 +189,10 @@ export function ServiceCard({ service, index = 0 }: { service: CatalogService; i
       <div className="flex items-start justify-between gap-4 mb-4">
         <div className="min-w-0">
           <div className="flex items-center gap-2 mb-1 flex-wrap">
-            <Link to={`/services/${service.name}`} className="text-base font-semibold text-pave-text truncate hover:text-pave-accent">
+            <Link
+              to={`/services/${service.name}`}
+              className="text-base font-semibold text-pave-text truncate hover:text-pave-accent"
+            >
               {service.name}
             </Link>
             <span
@@ -198,13 +221,22 @@ export function ServiceCard({ service, index = 0 }: { service: CatalogService; i
           <dd className="font-medium text-pave-text-secondary">{service.owner}</dd>
         </div>
         <div>
-          <dt className="text-xs text-pave-text-muted uppercase tracking-wider mb-0.5">Lifecycle</dt>
+          <dt className="text-xs text-pave-text-muted uppercase tracking-wider mb-0.5">
+            Lifecycle
+          </dt>
           <dd className="font-medium text-pave-text-secondary capitalize">{service.lifecycle}</dd>
         </div>
         <div className="col-span-2">
-          <dt className="text-xs text-pave-text-muted uppercase tracking-wider mb-0.5">Repository</dt>
+          <dt className="text-xs text-pave-text-muted uppercase tracking-wider mb-0.5">
+            Repository
+          </dt>
           <dd>
-            <a className="text-pave-accent hover:text-pave-accent-hover transition-colors text-sm" href={service.repoUrl} target="_blank" rel="noreferrer">
+            <a
+              className="text-pave-accent hover:text-pave-accent-hover transition-colors text-sm"
+              href={service.repoUrl}
+              target="_blank"
+              rel="noreferrer"
+            >
               {service.repoPath}
               <IconExternalLink />
             </a>
@@ -213,10 +245,18 @@ export function ServiceCard({ service, index = 0 }: { service: CatalogService; i
       </div>
 
       <div className="mb-4">
-        <h3 className="text-xs font-medium uppercase text-pave-text-muted tracking-wider mb-2">Environments</h3>
+        <h3 className="text-xs font-medium uppercase text-pave-text-muted tracking-wider mb-2">
+          Environments
+        </h3>
         <div className="flex flex-wrap gap-2">
           {Object.entries(service.environments).map(([env, state]) => (
-            <EnvBadge key={env} env={env} status={state.status} health={state.health} imageTag={state.imageTag} />
+            <EnvBadge
+              key={env}
+              env={env}
+              status={state.status}
+              health={state.health}
+              imageTag={state.imageTag}
+            />
           ))}
         </div>
       </div>
@@ -227,12 +267,19 @@ export function ServiceCard({ service, index = 0 }: { service: CatalogService; i
           className="flex items-center gap-2 text-xs font-medium uppercase text-pave-text-secondary hover:text-pave-accent transition-colors tracking-wider"
           aria-expanded={expanded}
         >
-          <svg className={`w-3 h-3 transition-transform duration-200 ${expanded ? "rotate-90" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <svg
+            className={`w-3 h-3 transition-transform duration-200 ${expanded ? "rotate-90" : ""}`}
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2}
+          >
             <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
           </svg>
           Scorecard details
           <span className="text-pave-text-muted font-normal normal-case tracking-normal">
-            ({service.scorecard.criteria.filter((c) => c.status === "passing").length}/{service.scorecard.criteria.length} passing)
+            ({service.scorecard.criteria.filter((c) => c.status === "passing").length}/
+            {service.scorecard.criteria.length} passing)
           </span>
         </button>
         {expanded && (
@@ -287,7 +334,9 @@ export function EmptyState({
         {icon ?? <IconInbox />}
       </div>
       <p className="text-pave-text text-base font-medium mb-1">{title}</p>
-      {description && <p className="text-pave-text-muted text-sm max-w-md mx-auto mb-4">{description}</p>}
+      {description && (
+        <p className="text-pave-text-muted text-sm max-w-md mx-auto mb-4">{description}</p>
+      )}
       {action}
     </div>
   );
@@ -295,12 +344,18 @@ export function EmptyState({
 
 export function InlineError({ message, onRetry }: { message: string; onRetry?: () => void }) {
   return (
-    <div role="alert" className="flex items-start gap-3 rounded-lg border border-pave-danger/30 bg-pave-danger/5 px-4 py-3 text-sm text-pave-danger">
+    <div
+      role="alert"
+      className="flex items-start gap-3 rounded-lg border border-pave-danger/30 bg-pave-danger/5 px-4 py-3 text-sm text-pave-danger"
+    >
       <IconAlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
       <div className="flex-1">
         <p>{message}</p>
         {onRetry && (
-          <button onClick={onRetry} className="mt-1 font-medium underline underline-offset-2 hover:no-underline">
+          <button
+            onClick={onRetry}
+            className="mt-1 font-medium underline underline-offset-2 hover:no-underline"
+          >
             Try again
           </button>
         )}
@@ -314,7 +369,8 @@ export function DemoDataNote({ count }: { count: number }) {
     <div className="flex items-center gap-2 rounded-lg border border-pave-info/25 bg-pave-info/5 px-3 py-2 text-xs text-pave-info">
       <IconAlertTriangle className="w-3.5 h-3.5 shrink-0" />
       <span>
-        Showing <strong className="tabular-nums">{count}</strong> synthetic demo rows appended for scale/virtualization illustration — not real services.
+        Showing <strong className="tabular-nums">{count}</strong> synthetic demo rows appended for
+        scale/virtualization illustration — not real services.
       </span>
     </div>
   );

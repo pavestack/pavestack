@@ -41,14 +41,14 @@ over a REST contract — see `src/lib/api.ts` for the exact request/response sha
 
 ## What's real vs. simulated
 
-| Area | Status |
-|---|---|
-| Catalog metadata (name, owner, lifecycle, scorecard, tier, runtime, exposure) | Real — read from committed YAML |
-| Deployed image tag | Real — read from committed Helm values |
-| Configured CPU/memory requests+limits | Real — read from committed Helm values |
-| Argo CD sync status / health | Illustrative sample data, labeled in the UI |
-| Deployment history | Not wired up; UI says so explicitly |
-| Live resource usage (CPU/mem/RPS graphs on the service detail page) | Empty state; no fabricated numbers |
-| Observability golden signals / sparklines | Illustrative sample data, labeled in the UI |
-| Cost estimate | Live call to `pave-api`; shows an offline state if unreachable |
-| Create Service / Request Access | Live calls to `pave-api`; shows an offline state if unreachable |
+| Area                                                                          | Status                                                          |
+| ----------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| Catalog metadata (name, owner, lifecycle, scorecard, tier, runtime, exposure) | Real — read from committed YAML                                 |
+| Deployed image tag                                                            | Real — read from committed Helm values                          |
+| Configured CPU/memory requests+limits                                         | Real — read from committed Helm values                          |
+| Argo CD sync status / health                                                  | Illustrative sample data, labeled in the UI                     |
+| Deployment history                                                            | Not wired up; UI says so explicitly                             |
+| Live resource usage (CPU/mem/RPS graphs on the service detail page)           | Empty state; no fabricated numbers                              |
+| Observability golden signals / sparklines                                     | Illustrative sample data, labeled in the UI                     |
+| Cost estimate                                                                 | Live call to `pave-api`; shows an offline state if unreachable  |
+| Create Service / Request Access                                               | Live calls to `pave-api`; shows an offline state if unreachable |

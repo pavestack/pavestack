@@ -26,7 +26,7 @@ describe("theme persistence", () => {
 
   test("getInitialTheme falls back to OS preference when nothing is stored", () => {
     vi.spyOn(window, "matchMedia").mockImplementation(
-      (query: string) => ({ matches: query.includes("light") } as MediaQueryList)
+      (query: string) => ({ matches: query.includes("light") }) as MediaQueryList
     );
     expect(getInitialTheme()).toBe("light");
   });

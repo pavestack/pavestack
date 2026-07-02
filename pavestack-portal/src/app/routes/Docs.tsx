@@ -16,13 +16,17 @@ export function Docs() {
     const lower = query.toLowerCase();
     return DOCS.map((s) => ({
       ...s,
-      headings: s.headings.filter((h) => h.title.toLowerCase().includes(lower) || h.body.some((p) => p.toLowerCase().includes(lower))),
+      headings: s.headings.filter(
+        (h) =>
+          h.title.toLowerCase().includes(lower) ||
+          h.body.some((p) => p.toLowerCase().includes(lower))
+      ),
     })).filter((s) => s.headings.length > 0 || s.title.toLowerCase().includes(lower));
   }, [query]);
 
   const active = DOCS.find((s) => s.id === activeId) ?? DOCS[0];
   const activeFiltered = filtered.find((s) => s.id === activeId);
-  const headingsToShow = query.trim() ? activeFiltered?.headings ?? [] : active.headings;
+  const headingsToShow = query.trim() ? (activeFiltered?.headings ?? []) : active.headings;
 
   return (
     <div className="grid gap-6 lg:grid-cols-[200px_1fr]">
@@ -60,7 +64,11 @@ export function Docs() {
         <h1 className="text-xl font-semibold text-pave-text mb-4">{active.title}</h1>
 
         {query.trim() && headingsToShow.length === 0 && (
-          <EmptyState icon={<IconBook />} title="No matches" description={`No headings or paragraphs in "${active.title}" match "${query}".`} />
+          <EmptyState
+            icon={<IconBook />}
+            title="No matches"
+            description={`No headings or paragraphs in "${active.title}" match "${query}".`}
+          />
         )}
 
         <div className="space-y-6">

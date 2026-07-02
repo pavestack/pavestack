@@ -48,19 +48,35 @@
   --breakpoint-xs: 30rem;
 
   @keyframes fadeIn {
-    0% { opacity: 0; }
-    100% { opacity: 1; }
+    0% {
+      opacity: 0;
+    }
+    100% {
+      opacity: 1;
+    }
   }
   @keyframes slideUp {
-    0% { opacity: 0; transform: translateY(10px); }
-    100% { opacity: 1; transform: translateY(0); }
+    0% {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
   @keyframes scoreFill {
-    0% { stroke-dashoffset: 251.2; }
+    0% {
+      stroke-dashoffset: 251.2;
+    }
   }
   @keyframes shimmer {
-    0% { background-position: -200% 0; }
-    100% { background-position: 200% 0; }
+    0% {
+      background-position: -200% 0;
+    }
+    100% {
+      background-position: 200% 0;
+    }
   }
 }
 
@@ -158,7 +174,9 @@ body {
 @layer components {
   .card {
     @apply rounded-xl border border-pave-border bg-pave-surface shadow-card;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    transition:
+      border-color 0.2s ease,
+      box-shadow 0.2s ease;
   }
 
   .card:hover {

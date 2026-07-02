@@ -1,7 +1,16 @@
 import React, { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useCatalog } from "../CatalogContext";
-import { CreatedViaBadge, CriteriaRow, EmptyState, InlineError, ScoreRing, SimulatedNote, Skeleton, TierBadge } from "../components";
+import {
+  CreatedViaBadge,
+  CriteriaRow,
+  EmptyState,
+  InlineError,
+  ScoreRing,
+  SimulatedNote,
+  Skeleton,
+  TierBadge,
+} from "../components";
 import { getCostEstimate, type CostEstimate } from "../../lib/api";
 import { IconExternalLink, IconServices } from "../icons";
 
@@ -19,10 +28,17 @@ export function ServiceDetail() {
     if (!service || !service.tier || !service.exposure) return;
     setCostLoading(true);
     setCostError(null);
-    getCostEstimate({ tier: service.tier, exposure: service.exposure, database: Boolean(service.database) })
+    getCostEstimate({
+      tier: service.tier,
+      exposure: service.exposure,
+      database: Boolean(service.database),
+    })
       .then((data) => setCost(data))
       .catch((err) => setCostError(err instanceof Error ? err.message : "Could not reach pave-api"))
       .finally(() => setCostLoading(false));
+    // Intentionally depend on primitive fields rather than `service` itself,
+    // so a catalog refetch that leaves these fields unchanged doesn't re-trigger the cost call.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [service?.name, service?.tier, service?.exposure, service?.database]);
 
   if (loading) {
@@ -81,15 +97,24 @@ export function ServiceDetail() {
         <div className="card p-4">
           <dt className="text-xs text-pave-text-muted uppercase tracking-wider mb-1">Repository</dt>
           <dd className="text-sm">
-            <a href={service.repoUrl} target="_blank" rel="noreferrer" className="text-pave-accent hover:text-pave-accent-hover">
+            <a
+              href={service.repoUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="text-pave-accent hover:text-pave-accent-hover"
+            >
               {service.repoPath}
               <IconExternalLink />
             </a>
           </dd>
         </div>
         <div className="card p-4">
-          <dt className="text-xs text-pave-text-muted uppercase tracking-wider mb-1">Managed database</dt>
-          <dd className="text-sm font-medium text-pave-text">{service.database === null ? "unknown" : service.database ? "Yes" : "No"}</dd>
+          <dt className="text-xs text-pave-text-muted uppercase tracking-wider mb-1">
+            Managed database
+          </dt>
+          <dd className="text-sm font-medium text-pave-text">
+            {service.database === null ? "unknown" : service.database ? "Yes" : "No"}
+          </dd>
         </div>
         <div className="card p-4">
           <dt className="text-xs text-pave-text-muted uppercase tracking-wider mb-1">System</dt>
@@ -122,8 +147,9 @@ export function ServiceDetail() {
         <h2 className="text-base font-semibold text-pave-text mb-1">Environments</h2>
         <div className="mb-3">
           <SimulatedNote>
-            Sync status and health below are illustrative sample data pending a live Argo CD integration. Image tags are real —
-            read directly from the committed Helm values in <code className="font-mono">platform-config/tenants/{service.name}</code>.
+            Sync status and health below are illustrative sample data pending a live Argo CD
+            integration. Image tags are real — read directly from the committed Helm values in{" "}
+            <code className="font-mono">platform-config/tenants/{service.name}</code>.
           </SimulatedNote>
         </div>
         <div className="grid gap-3 sm:grid-cols-2">
@@ -131,7 +157,11 @@ export function ServiceDetail() {
             <div key={env} className="rounded-lg border border-pave-border p-4">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-semibold uppercase text-pave-text">{env}</span>
-                <span className={`badge ${state.status === "synced" ? "badge-success" : "badge-warning"}`}>{state.status}</span>
+                <span
+                  className={`badge ${state.status === "synced" ? "badge-success" : "badge-warning"}`}
+                >
+                  {state.status}
+                </span>
               </div>
               <dl className="text-sm space-y-1">
                 <div className="flex justify-between">
@@ -140,7 +170,9 @@ export function ServiceDetail() {
                 </div>
                 <div className="flex justify-between">
                   <dt className="text-pave-text-muted">Image tag</dt>
-                  <dd className="font-mono tabular-nums text-pave-text-secondary">{state.imageTag ?? "unknown"}</dd>
+                  <dd className="font-mono tabular-nums text-pave-text-secondary">
+                    {state.imageTag ?? "unknown"}
+                  </dd>
                 </div>
               </dl>
             </div>
@@ -152,8 +184,8 @@ export function ServiceDetail() {
       <section className="card p-5">
         <h2 className="text-base font-semibold text-pave-text mb-2">Deployment history</h2>
         <SimulatedNote>
-          History not yet wired to a real deploy log — showing current state only. A future iteration will read this from CI
-          release events or Argo CD application history.
+          History not yet wired to a real deploy log — showing current state only. A future
+          iteration will read this from CI release events or Argo CD application history.
         </SimulatedNote>
       </section>
 
@@ -173,13 +205,15 @@ export function ServiceDetail() {
                     <div className="flex justify-between">
                       <dt className="text-pave-text-muted">CPU request / limit</dt>
                       <dd className="font-mono tabular-nums text-pave-text-secondary">
-                        {state.resources.requests?.cpu ?? "?"} / {state.resources.limits?.cpu ?? "?"}
+                        {state.resources.requests?.cpu ?? "?"} /{" "}
+                        {state.resources.limits?.cpu ?? "?"}
                       </dd>
                     </div>
                     <div className="flex justify-between">
                       <dt className="text-pave-text-muted">Memory request / limit</dt>
                       <dd className="font-mono tabular-nums text-pave-text-secondary">
-                        {state.resources.requests?.memory ?? "?"} / {state.resources.limits?.memory ?? "?"}
+                        {state.resources.requests?.memory ?? "?"} /{" "}
+                        {state.resources.limits?.memory ?? "?"}
                       </dd>
                     </div>
                   </dl>
@@ -200,13 +234,15 @@ export function ServiceDetail() {
         <h2 className="text-base font-semibold text-pave-text mb-3">Cost estimate</h2>
         {!service.tier || !service.exposure ? (
           <p className="text-sm text-pave-text-muted">
-            Tier and exposure aren't set for this service, so a cost estimate can't be computed. Services scaffolded through
-            the Create Service wizard will have this set automatically.
+            Tier and exposure aren't set for this service, so a cost estimate can't be computed.
+            Services scaffolded through the Create Service wizard will have this set automatically.
           </p>
         ) : costLoading ? (
           <Skeleton className="h-16 w-full" />
         ) : costError ? (
-          <InlineError message={`Backend unreachable — start pave-api locally to see a live cost estimate. (${costError})`} />
+          <InlineError
+            message={`Backend unreachable — start pave-api locally to see a live cost estimate. (${costError})`}
+          />
         ) : cost ? (
           <div>
             <p className="text-2xl font-bold tabular-nums text-pave-text">

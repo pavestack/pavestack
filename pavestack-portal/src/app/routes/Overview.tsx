@@ -10,8 +10,21 @@ import {
   sortServices,
   type SortKey,
 } from "../../lib/catalog";
-import { DemoDataNote, EmptyState, InlineError, ServiceCard, SkeletonGrid, SortSelect, StatCard } from "../components";
-import { ServiceDataTable, sortServicesForTable, type SortDir, type TableSortKey } from "../DataTable";
+import {
+  DemoDataNote,
+  EmptyState,
+  InlineError,
+  ServiceCard,
+  SkeletonGrid,
+  SortSelect,
+  StatCard,
+} from "../components";
+import {
+  ServiceDataTable,
+  sortServicesForTable,
+  type SortDir,
+  type TableSortKey,
+} from "../DataTable";
 import { IconCheck, IconGrid, IconPassing, IconScore, IconServices } from "../icons";
 
 type ViewMode = "grid" | "table";
@@ -34,7 +47,10 @@ export function Overview() {
     return showDemo ? [...real, ...demoServices] : real;
   }, [catalog, showDemo, demoServices]);
 
-  const teams = useMemo(() => Array.from(new Set(allServices.map((s) => s.team))).sort(), [allServices]);
+  const teams = useMemo(
+    () => Array.from(new Set(allServices.map((s) => s.team))).sort(),
+    [allServices]
+  );
   const tiers = ["tier-1", "tier-2", "tier-3"];
 
   const filtered = useMemo(() => {
@@ -45,7 +61,10 @@ export function Overview() {
   }, [allServices, search, team, tier]);
 
   const gridSorted = useMemo(() => sortServices(filtered, sortKey), [filtered, sortKey]);
-  const tableSorted = useMemo(() => sortServicesForTable(filtered, tableSortKey, tableSortDir), [filtered, tableSortKey, tableSortDir]);
+  const tableSorted = useMemo(
+    () => sortServicesForTable(filtered, tableSortKey, tableSortDir),
+    [filtered, tableSortKey, tableSortDir]
+  );
 
   const stats = useMemo(() => (catalog ? computeStats(catalog.services) : null), [catalog]);
 
@@ -75,7 +94,10 @@ export function Overview() {
 
       {!loading && error && (
         <div className="mb-6">
-          <InlineError message="Failed to load catalog.json. Showing an empty catalog below." onRetry={reload} />
+          <InlineError
+            message="Failed to load catalog.json. Showing an empty catalog below."
+            onRetry={reload}
+          />
         </div>
       )}
 
@@ -83,10 +105,30 @@ export function Overview() {
         <>
           {stats && (
             <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-6">
-              <StatCard icon={<IconServices />} label="Services" value={stats.total} subtext="Registered in catalog" />
-              <StatCard icon={<IconScore />} label="Avg score" value={stats.avgScore} subtext="Platform compliance" />
-              <StatCard icon={<IconPassing />} label="Passing" value={`${stats.passing}/${stats.total}`} subtext="Score ≥ 70" />
-              <StatCard icon={<IconCheck />} label="Criteria" value={`${stats.passingCriteria}/${stats.totalCriteria}`} subtext="Individual checks" />
+              <StatCard
+                icon={<IconServices />}
+                label="Services"
+                value={stats.total}
+                subtext="Registered in catalog"
+              />
+              <StatCard
+                icon={<IconScore />}
+                label="Avg score"
+                value={stats.avgScore}
+                subtext="Platform compliance"
+              />
+              <StatCard
+                icon={<IconPassing />}
+                label="Passing"
+                value={`${stats.passing}/${stats.total}`}
+                subtext="Score ≥ 70"
+              />
+              <StatCard
+                icon={<IconCheck />}
+                label="Criteria"
+                value={`${stats.passingCriteria}/${stats.totalCriteria}`}
+                subtext="Individual checks"
+              />
               <StatCard
                 icon={<IconGrid />}
                 label="Pave adoption"
@@ -134,7 +176,11 @@ export function Overview() {
               ))}
             </select>
             {view === "grid" && <SortSelect value={sortKey} onChange={setSortKey} />}
-            <div className="flex rounded-lg border border-pave-border overflow-hidden shrink-0" role="group" aria-label="View mode">
+            <div
+              className="flex rounded-lg border border-pave-border overflow-hidden shrink-0"
+              role="group"
+              aria-label="View mode"
+            >
               <button
                 type="button"
                 onClick={() => setView("grid")}
@@ -156,7 +202,12 @@ export function Overview() {
 
           <div className="flex items-center gap-2 mb-4">
             <label className="flex items-center gap-2 text-xs text-pave-text-muted cursor-pointer select-none">
-              <input type="checkbox" checked={showDemo} onChange={(e) => setShowDemo(e.target.checked)} className="accent-[var(--accent)]" />
+              <input
+                type="checkbox"
+                checked={showDemo}
+                onChange={(e) => setShowDemo(e.target.checked)}
+                className="accent-[var(--accent)]"
+              />
               Show 1,200 synthetic demo rows (table scale/virtualization demo)
             </label>
           </div>
@@ -207,7 +258,12 @@ export function Overview() {
                 ))}
               </section>
             ) : (
-              <ServiceDataTable services={tableSorted} sortKey={tableSortKey} sortDir={tableSortDir} onSort={handleTableSort} />
+              <ServiceDataTable
+                services={tableSorted}
+                sortKey={tableSortKey}
+                sortDir={tableSortDir}
+                onSort={handleTableSort}
+              />
             ))}
         </>
       )}

@@ -31,6 +31,12 @@ jobs:
       - name: Download modules
         run: go mod download
 
+      - name: Vet
+        run: go vet ./...
+
+      - name: Format check
+        run: test -z "$(gofmt -l .)" || (gofmt -d . && exit 1)
+
       - name: Unit tests
         run: go test ./...
 

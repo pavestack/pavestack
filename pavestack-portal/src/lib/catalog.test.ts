@@ -36,7 +36,12 @@ const mockServices: CatalogService[] = [
     scorecard: {
       overallScore: 95,
       criteria: [
-        { key: "security_scan_passing", label: "Security Scan Passing", status: "passing", weight: 50 },
+        {
+          key: "security_scan_passing",
+          label: "Security Scan Passing",
+          status: "passing",
+          weight: 50,
+        },
         { key: "docs_present", label: "Docs Present", status: "passing", weight: 50 },
       ],
     },
@@ -62,7 +67,12 @@ const mockServices: CatalogService[] = [
     scorecard: {
       overallScore: 75,
       criteria: [
-        { key: "security_scan_passing", label: "Security Scan Passing", status: "passing", weight: 50 },
+        {
+          key: "security_scan_passing",
+          label: "Security Scan Passing",
+          status: "passing",
+          weight: 50,
+        },
         { key: "docs_present", label: "Docs Present", status: "failing", weight: 50 },
       ],
     },
@@ -86,7 +96,12 @@ const mockServices: CatalogService[] = [
     scorecard: {
       overallScore: 45,
       criteria: [
-        { key: "security_scan_passing", label: "Security Scan Passing", status: "failing", weight: 50 },
+        {
+          key: "security_scan_passing",
+          label: "Security Scan Passing",
+          status: "failing",
+          weight: 50,
+        },
         { key: "docs_present", label: "Docs Present", status: "failing", weight: 50 },
       ],
     },

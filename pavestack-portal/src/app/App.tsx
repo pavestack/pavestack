@@ -19,7 +19,11 @@ function Shell() {
   return (
     <div className="app-shell">
       {sidebarOpen && (
-        <div className="app-sidebar-backdrop" onClick={() => setSidebarOpen(false)} aria-hidden="true" />
+        <div
+          className="app-sidebar-backdrop"
+          onClick={() => setSidebarOpen(false)}
+          aria-hidden="true"
+        />
       )}
       <Sidebar open={sidebarOpen} onNavigate={() => setSidebarOpen(false)} />
       <div className="app-main-col">

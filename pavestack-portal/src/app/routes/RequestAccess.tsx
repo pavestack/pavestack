@@ -19,13 +19,22 @@ function describeError(err: unknown): string {
 }
 
 function StatusPill({ status }: { status: AccessRequest["status"] }) {
-  const cls = status === "approved" ? "badge-success" : status === "denied" ? "badge-danger" : "badge-warning";
+  const cls =
+    status === "approved"
+      ? "badge-success"
+      : status === "denied"
+        ? "badge-danger"
+        : "badge-warning";
   return <span className={`badge ${cls}`}>{status}</span>;
 }
 
 const ACCESS_LEVELS: { value: AccessLevel; label: string; description: string }[] = [
   { value: "read", label: "Read", description: "View resources, logs, and configuration." },
-  { value: "write", label: "Write", description: "Deploy and modify resources within the namespace." },
+  {
+    value: "write",
+    label: "Write",
+    description: "Deploy and modify resources within the namespace.",
+  },
   { value: "admin", label: "Admin", description: "Manage RBAC and namespace-level policy." },
 ];
 
@@ -83,31 +92,62 @@ export function RequestAccess() {
 
         {submitted && (
           <div className="mb-4 rounded-lg border border-pave-warning/30 bg-pave-warning/5 px-4 py-3 text-sm text-pave-warning">
-            Request submitted and is <strong>pending approval</strong>. You'll see it update in the list once an approver acts on it.
+            Request submitted and is <strong>pending approval</strong>. You'll see it update in the
+            list once an approver acts on it.
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="card p-5 space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label htmlFor="access-requester" className="block text-sm font-medium text-pave-text mb-1">
+              <label
+                htmlFor="access-requester"
+                className="block text-sm font-medium text-pave-text mb-1"
+              >
                 Requester
               </label>
-              <input id="access-requester" required value={requester} onChange={(e) => setRequester(e.target.value)} placeholder="you@pavestack.io" className="search-input" />
+              <input
+                id="access-requester"
+                required
+                value={requester}
+                onChange={(e) => setRequester(e.target.value)}
+                placeholder="you@pavestack.io"
+                className="search-input"
+              />
             </div>
             <div>
-              <label htmlFor="access-team" className="block text-sm font-medium text-pave-text mb-1">
+              <label
+                htmlFor="access-team"
+                className="block text-sm font-medium text-pave-text mb-1"
+              >
                 Team
               </label>
-              <input id="access-team" required value={team} onChange={(e) => setTeam(e.target.value)} placeholder="team-payments" className="search-input" />
+              <input
+                id="access-team"
+                required
+                value={team}
+                onChange={(e) => setTeam(e.target.value)}
+                placeholder="team-payments"
+                className="search-input"
+              />
             </div>
           </div>
 
           <div>
-            <label htmlFor="access-namespace" className="block text-sm font-medium text-pave-text mb-1">
+            <label
+              htmlFor="access-namespace"
+              className="block text-sm font-medium text-pave-text mb-1"
+            >
               Namespace
             </label>
-            <input id="access-namespace" required value={namespace} onChange={(e) => setNamespace(e.target.value)} placeholder="payments" className="search-input" />
+            <input
+              id="access-namespace"
+              required
+              value={namespace}
+              onChange={(e) => setNamespace(e.target.value)}
+              placeholder="payments"
+              className="search-input"
+            />
           </div>
 
           <fieldset>
@@ -116,11 +156,20 @@ export function RequestAccess() {
               {ACCESS_LEVELS.map((opt) => (
                 <label
                   key={opt.value}
+                  aria-label={opt.label}
                   className={`flex items-start gap-2 rounded-lg border px-3 py-2 text-sm cursor-pointer ${
-                    level === opt.value ? "border-pave-accent ring-1 ring-pave-accent" : "border-pave-border hover:border-pave-border-strong"
+                    level === opt.value
+                      ? "border-pave-accent ring-1 ring-pave-accent"
+                      : "border-pave-border hover:border-pave-border-strong"
                   }`}
                 >
-                  <input type="radio" name="level" className="mt-0.5" checked={level === opt.value} onChange={() => setLevel(opt.value)} />
+                  <input
+                    type="radio"
+                    name="level"
+                    className="mt-0.5"
+                    checked={level === opt.value}
+                    onChange={() => setLevel(opt.value)}
+                  />
                   <span>
                     <span className="font-medium text-pave-text">{opt.label}</span>
                     <span className="block text-xs text-pave-text-muted">{opt.description}</span>
@@ -131,7 +180,10 @@ export function RequestAccess() {
           </fieldset>
 
           <div>
-            <label htmlFor="access-reason" className="block text-sm font-medium text-pave-text mb-1">
+            <label
+              htmlFor="access-reason"
+              className="block text-sm font-medium text-pave-text mb-1"
+            >
               Reason
             </label>
             <textarea
@@ -145,7 +197,9 @@ export function RequestAccess() {
             />
           </div>
 
-          {submitError && <InlineError message={submitError} onRetry={handleSubmit as unknown as () => void} />}
+          {submitError && (
+            <InlineError message={submitError} onRetry={handleSubmit as unknown as () => void} />
+          )}
 
           <button type="submit" disabled={submitting} className="btn btn-primary w-full">
             {submitting ? "Submitting…" : "Submit request"}
@@ -154,7 +208,9 @@ export function RequestAccess() {
       </div>
 
       <div>
-        <h2 className="text-sm font-semibold text-pave-text uppercase tracking-wider mb-3">Existing requests</h2>
+        <h2 className="text-sm font-semibold text-pave-text uppercase tracking-wider mb-3">
+          Existing requests
+        </h2>
         {listLoading && (
           <div className="space-y-2">
             <Skeleton className="h-12 w-full" />
@@ -163,7 +219,11 @@ export function RequestAccess() {
         )}
         {!listLoading && listError && <InlineError message={listError} onRetry={loadRequests} />}
         {!listLoading && !listError && requests && requests.length === 0 && (
-          <EmptyState icon={<IconKey />} title="No access requests yet" description="Requests submitted here will appear with their approval status." />
+          <EmptyState
+            icon={<IconKey />}
+            title="No access requests yet"
+            description="Requests submitted here will appear with their approval status."
+          />
         )}
         {!listLoading && !listError && requests && requests.length > 0 && (
           <ul className="space-y-2">
@@ -177,7 +237,11 @@ export function RequestAccess() {
                   {r.requester} · {r.team} · <span className="uppercase">{r.level}</span>
                 </p>
                 <p className="text-xs text-pave-text-secondary mt-1">{r.reason}</p>
-                {r.note && <p className="text-xs text-pave-text-muted mt-1 italic">Approver note: {r.note}</p>}
+                {r.note && (
+                  <p className="text-xs text-pave-text-muted mt-1 italic">
+                    Approver note: {r.note}
+                  </p>
+                )}
               </li>
             ))}
           </ul>

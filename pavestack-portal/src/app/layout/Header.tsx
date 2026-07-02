@@ -57,7 +57,11 @@ export function Header({ onToggleSidebar }: { onToggleSidebar: () => void }) {
             className="search-input pl-10"
           />
           {focused && suggestions.length > 0 && (
-            <ul id="global-search-results" role="listbox" className="absolute z-20 mt-1 w-full rounded-lg border border-pave-border bg-pave-elevated shadow-card overflow-hidden">
+            <ul
+              id="global-search-results"
+              role="listbox"
+              className="absolute z-20 mt-1 w-full rounded-lg border border-pave-border bg-pave-elevated shadow-card overflow-hidden"
+            >
               {suggestions.map((s) => (
                 <li key={s.id} role="option" aria-selected="false">
                   <button

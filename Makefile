@@ -33,12 +33,13 @@ lint:
 	cd service-template-api && go vet ./...
 	cd pave && go vet ./...
 	cd tests && go vet ./...
-	cd pavestack-portal && npm ci --silent && npx tsc --noEmit
+	cd pavestack-portal && npm ci --silent && npm run lint
 
 fmt: infra-fmt
 	cd service-template-api && test -z "$$(gofmt -l .)" || (gofmt -d . && exit 1)
 	cd pave && test -z "$$(gofmt -l .)" || (gofmt -d . && exit 1)
 	cd tests && test -z "$$(gofmt -l .)" || (gofmt -d . && exit 1)
+	cd pavestack-portal && npm ci --silent && npm run format:check
 
 pave:
 	cd pave && go build -ldflags="-X github.com/pavestack/pave/internal/cli.Version=$$(git describe --tags --always --dirty 2>/dev/null || echo dev)" -o ../bin/pave ./cmd/pave

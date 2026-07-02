@@ -64,7 +64,12 @@ export function ServiceDataTable({
   const virtualRows = virtualizer.getVirtualItems();
 
   return (
-    <div className="card overflow-x-auto" role="table" aria-label="Services" aria-rowcount={services.length + 1}>
+    <div
+      className="card overflow-x-auto"
+      role="table"
+      aria-label="Services"
+      aria-rowcount={services.length + 1}
+    >
       <div style={{ minWidth: MIN_TABLE_WIDTH }}>
         {/* Header row */}
         <div
@@ -83,7 +88,15 @@ export function ServiceDataTable({
                 className={`th-sortable flex items-center gap-1 ${col.numeric ? "justify-end" : ""}`}
               >
                 {col.label}
-                {active ? sortDir === "asc" ? <IconChevronUp /> : <IconChevronDown /> : <IconUpDown />}
+                {active ? (
+                  sortDir === "asc" ? (
+                    <IconChevronUp />
+                  ) : (
+                    <IconChevronDown />
+                  )
+                ) : (
+                  <IconUpDown />
+                )}
               </button>
             );
           })}
@@ -107,14 +120,22 @@ export function ServiceDataTable({
                     transform: `translateY(${virtualRow.start}px)`,
                   }}
                 >
-                  <span role="cell" className="truncate text-sm font-medium text-pave-text flex items-center gap-2">
+                  <span
+                    role="cell"
+                    className="truncate text-sm font-medium text-pave-text flex items-center gap-2"
+                  >
                     {service.name}
-                    {service.isDemo && <span className="badge badge-neutral text-[9px] shrink-0">demo</span>}
+                    {service.isDemo && (
+                      <span className="badge badge-neutral text-[9px] shrink-0">demo</span>
+                    )}
                   </span>
                   <span role="cell" className="truncate text-sm text-pave-text-secondary">
                     {service.team}
                   </span>
-                  <span role="cell" className="truncate text-sm text-pave-text-secondary capitalize">
+                  <span
+                    role="cell"
+                    className="truncate text-sm text-pave-text-secondary capitalize"
+                  >
                     {service.lifecycle}
                   </span>
                   <span role="cell">
@@ -123,7 +144,10 @@ export function ServiceDataTable({
                   <span role="cell">
                     <CreatedViaBadge createdVia={service.createdVia} />
                   </span>
-                  <span role="cell" className={`text-sm font-semibold tabular-nums text-right ${scoreBadgeClass(service.scorecard.overallScore)}`}>
+                  <span
+                    role="cell"
+                    className={`text-sm font-semibold tabular-nums text-right ${scoreBadgeClass(service.scorecard.overallScore)}`}
+                  >
                     {service.scorecard.overallScore}
                   </span>
                 </Link>
@@ -136,7 +160,11 @@ export function ServiceDataTable({
   );
 }
 
-export function sortServicesForTable(services: CatalogService[], key: TableSortKey, dir: SortDir): CatalogService[] {
+export function sortServicesForTable(
+  services: CatalogService[],
+  key: TableSortKey,
+  dir: SortDir
+): CatalogService[] {
   const sorted = [...services].sort((a, b) => {
     switch (key) {
       case "team":

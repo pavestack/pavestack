@@ -159,6 +159,27 @@ to a real release. Dependabot (`.github/dependabot.yml`,
 SHA-pinning PR for each of these — accept it rather than hand-picking a
 SHA later without verifying it against the actual tag commit.
 
+## Quality gates — CI mirrors `make`, don't drift
+
+`make test`/`make lint`/`make fmt` are not just local convenience targets —
+every per-component CI workflow (`pave-cli.yml`, `service-template-api.yml`,
+`pavestack-portal.yml`) now runs the equivalent checks natively
+(`go vet`/`gofmt -l`/`go test`, `eslint`/`tsc --noEmit`/`vitest run`/
+`prettier --check`) so a passing `make lint && make fmt && make test`
+locally means CI will pass too. Install the pre-commit hooks
+(`pip install pre-commit && pre-commit install`, see `CONTRIBUTING.md`) so
+these run before you push rather than after CI fails. If you add a new
+Go package or portal source directory, make sure it's covered by these —
+don't add a component with its own CI workflow that skips vet/fmt/lint.
+
+`pavestack-portal`'s ESLint config (`eslint.config.js`) pins
+`eslint-plugin-react-hooks` to `5.x` (the classic `rules-of-hooks` +
+`exhaustive-deps` rules) rather than the `6.x`/`7.x` React Compiler
+ruleset — the portal doesn't run React Compiler, and the newer ruleset's
+`set-state-in-effect`/`purity` checks would force non-mechanical effect
+rewrites unrelated to adding lint tooling. Revisit this if the portal
+ever adopts React Compiler.
+
 ## Anti-goals
 
 See `INTENT_SPEC.md`.

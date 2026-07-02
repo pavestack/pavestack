@@ -44,7 +44,9 @@ function StepProgress({ current }: { current: WizardStepIndex }) {
               >
                 {state === "done" ? <IconCheck className="w-3 h-3" /> : i + 1}
               </span>
-              <span className={`text-xs font-medium truncate hidden sm:inline ${state === "pending" ? "text-pave-text-muted" : "text-pave-text"}`}>
+              <span
+                className={`text-xs font-medium truncate hidden sm:inline ${state === "pending" ? "text-pave-text-muted" : "text-pave-text"}`}
+              >
                 {label}
               </span>
             </div>
@@ -105,12 +107,12 @@ export function CreateServiceWizard() {
     setTouched(true);
     if (!isStepValid(step, state)) return;
     setTouched(false);
-    setStep((s) => (Math.min(s + 1, 3) as WizardStepIndex));
+    setStep((s) => Math.min(s + 1, 3) as WizardStepIndex);
   }
 
   function goBack() {
     setTouched(false);
-    setStep((s) => (Math.max(s - 1, 0) as WizardStepIndex));
+    setStep((s) => Math.max(s - 1, 0) as WizardStepIndex);
   }
 
   function pollJob(id: string) {
@@ -162,7 +164,8 @@ export function CreateServiceWizard() {
       <div className="max-w-2xl">
         <h1 className="text-xl font-semibold text-pave-text mb-1">Creating {state.name}</h1>
         <p className="text-sm text-pave-text-muted mb-6">
-          Job <span className="font-mono">{jobId}</span> — polling <code className="font-mono">GET /api/v1/jobs/{jobId}</code> every 1.5s.
+          Job <span className="font-mono">{jobId}</span> — polling{" "}
+          <code className="font-mono">GET /api/v1/jobs/{jobId}</code> every 1.5s.
         </p>
 
         {submitError && (
@@ -173,9 +176,7 @@ export function CreateServiceWizard() {
 
         {job && (
           <div className="card p-5">
-            {job.dryRun && (
-              <div className="badge badge-neutral mb-4">dry run</div>
-            )}
+            {job.dryRun && <div className="badge badge-neutral mb-4">dry run</div>}
             <StepTracker steps={job.steps} />
             {job.status === "completed" && job.prUrl && (
               <div className="mt-4 pt-4 border-t border-pave-border">
@@ -203,7 +204,10 @@ export function CreateServiceWizard() {
   return (
     <div className="max-w-2xl">
       <h1 className="text-xl font-semibold text-pave-text mb-1">Create a new service</h1>
-      <p className="text-sm text-pave-text-muted mb-6">Mirrors <code className="font-mono">pave create-service</code> — scaffolds the golden-path template and opens a PR.</p>
+      <p className="text-sm text-pave-text-muted mb-6">
+        Mirrors <code className="font-mono">pave create-service</code> — scaffolds the golden-path
+        template and opens a PR.
+      </p>
 
       <StepProgress current={step} />
 
@@ -211,7 +215,10 @@ export function CreateServiceWizard() {
         {step === 0 && (
           <div className="space-y-4">
             <div>
-              <label htmlFor="wizard-name" className="block text-sm font-medium text-pave-text mb-1">
+              <label
+                htmlFor="wizard-name"
+                className="block text-sm font-medium text-pave-text mb-1"
+              >
                 Service name
               </label>
               <input
@@ -222,10 +229,15 @@ export function CreateServiceWizard() {
                 placeholder="payments"
                 className="search-input"
               />
-              {touched && validateName(state.name) && <p className="text-xs text-pave-danger mt-1">{validateName(state.name)}</p>}
+              {touched && validateName(state.name) && (
+                <p className="text-xs text-pave-danger mt-1">{validateName(state.name)}</p>
+              )}
             </div>
             <div>
-              <label htmlFor="wizard-team" className="block text-sm font-medium text-pave-text mb-1">
+              <label
+                htmlFor="wizard-team"
+                className="block text-sm font-medium text-pave-text mb-1"
+              >
                 Owning team
               </label>
               <input
@@ -236,7 +248,9 @@ export function CreateServiceWizard() {
                 placeholder="team-payments"
                 className="search-input"
               />
-              {touched && validateTeam(state.team) && <p className="text-xs text-pave-danger mt-1">{validateTeam(state.team)}</p>}
+              {touched && validateTeam(state.team) && (
+                <p className="text-xs text-pave-danger mt-1">{validateTeam(state.team)}</p>
+              )}
             </div>
           </div>
         )}
@@ -249,7 +263,9 @@ export function CreateServiceWizard() {
                 key={opt.value}
                 title={opt.note}
                 className={`flex items-center gap-3 rounded-lg border px-3 py-2.5 text-sm ${
-                  opt.available ? "border-pave-border cursor-pointer hover:border-pave-border-strong" : "border-pave-border opacity-50 cursor-not-allowed"
+                  opt.available
+                    ? "border-pave-border cursor-pointer hover:border-pave-border-strong"
+                    : "border-pave-border opacity-50 cursor-not-allowed"
                 } ${state.runtime === opt.value ? "ring-1 ring-pave-accent border-pave-accent" : ""}`}
               >
                 <input
@@ -264,7 +280,10 @@ export function CreateServiceWizard() {
                 {!opt.available && <span className="badge badge-neutral ml-auto">Coming soon</span>}
               </label>
             ))}
-            <p className="text-xs text-pave-text-muted">Only Go is scaffolded by the golden-path template today; Node.js and Python runtimes are planned.</p>
+            <p className="text-xs text-pave-text-muted">
+              Only Go is scaffolded by the golden-path template today; Node.js and Python runtimes
+              are planned.
+            </p>
           </fieldset>
         )}
 
@@ -277,10 +296,18 @@ export function CreateServiceWizard() {
                   <label
                     key={exp}
                     className={`flex-1 text-center rounded-lg border px-3 py-2 text-sm cursor-pointer capitalize ${
-                      state.exposure === exp ? "border-pave-accent ring-1 ring-pave-accent text-pave-accent" : "border-pave-border text-pave-text-secondary hover:border-pave-border-strong"
+                      state.exposure === exp
+                        ? "border-pave-accent ring-1 ring-pave-accent text-pave-accent"
+                        : "border-pave-border text-pave-text-secondary hover:border-pave-border-strong"
                     }`}
                   >
-                    <input type="radio" name="exposure" className="sr-only" checked={state.exposure === exp} onChange={() => update("exposure", exp)} />
+                    <input
+                      type="radio"
+                      name="exposure"
+                      className="sr-only"
+                      checked={state.exposure === exp}
+                      onChange={() => update("exposure", exp)}
+                    />
                     {exp}
                   </label>
                 ))}
@@ -288,7 +315,11 @@ export function CreateServiceWizard() {
             </fieldset>
 
             <label className="flex items-center gap-2 text-sm text-pave-text">
-              <input type="checkbox" checked={state.database} onChange={(e) => update("database", e.target.checked)} />
+              <input
+                type="checkbox"
+                checked={state.database}
+                onChange={(e) => update("database", e.target.checked)}
+              />
               Requires a managed database
             </label>
 
@@ -299,11 +330,18 @@ export function CreateServiceWizard() {
                   <label
                     key={opt.value}
                     className={`block rounded-lg border px-3 py-2.5 text-sm cursor-pointer ${
-                      state.tier === opt.value ? "border-pave-accent ring-1 ring-pave-accent" : "border-pave-border hover:border-pave-border-strong"
+                      state.tier === opt.value
+                        ? "border-pave-accent ring-1 ring-pave-accent"
+                        : "border-pave-border hover:border-pave-border-strong"
                     }`}
                   >
                     <div className="flex items-center gap-2">
-                      <input type="radio" name="tier" checked={state.tier === opt.value} onChange={() => update("tier", opt.value)} />
+                      <input
+                        type="radio"
+                        name="tier"
+                        checked={state.tier === opt.value}
+                        onChange={() => update("tier", opt.value)}
+                      />
                       <span className="font-medium text-pave-text">{opt.label}</span>
                     </div>
                     <p className="text-xs text-pave-text-muted mt-1 ml-6">{opt.description}</p>
@@ -344,7 +382,8 @@ export function CreateServiceWizard() {
               {cost && !costError && (
                 <div>
                   <p className="text-xl font-bold tabular-nums text-pave-text">
-                    ${cost.monthlyUsdLow}–${cost.monthlyUsdHigh} <span className="text-sm font-normal text-pave-text-muted">/mo</span>
+                    ${cost.monthlyUsdLow}–${cost.monthlyUsdHigh}{" "}
+                    <span className="text-sm font-normal text-pave-text-muted">/mo</span>
                   </p>
                   <p className="text-xs text-pave-text-muted mt-1">{cost.disclaimer}</p>
                 </div>
@@ -365,7 +404,12 @@ export function CreateServiceWizard() {
             Continue
           </button>
         ) : (
-          <button type="button" onClick={handleSubmit} disabled={submitting} className="btn btn-primary">
+          <button
+            type="button"
+            onClick={handleSubmit}
+            disabled={submitting}
+            className="btn btn-primary"
+          >
             {submitting ? "Submitting…" : "Create service"}
           </button>
         )}

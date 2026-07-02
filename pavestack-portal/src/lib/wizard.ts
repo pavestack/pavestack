@@ -41,13 +41,34 @@ export function validateTeam(team: string): string | null {
 }
 
 /** Runtimes actually supported by the golden-path scaffold today. */
-export const RUNTIME_OPTIONS: { value: Runtime; label: string; available: boolean; note?: string }[] = [
+export const RUNTIME_OPTIONS: {
+  value: Runtime;
+  label: string;
+  available: boolean;
+  note?: string;
+}[] = [
   { value: "go", label: "Go", available: true },
-  { value: "node", label: "Node.js", available: false, note: "Coming soon — golden-path template is Go-only today" },
-  { value: "python", label: "Python", available: false, note: "Coming soon — golden-path template is Go-only today" },
+  {
+    value: "node",
+    label: "Node.js",
+    available: false,
+    note: "Coming soon — golden-path template is Go-only today",
+  },
+  {
+    value: "python",
+    label: "Python",
+    available: false,
+    note: "Coming soon — golden-path template is Go-only today",
+  },
 ];
 
-export const TIER_OPTIONS: { value: Tier; label: string; description: string; replicas: string; sizing: string }[] = [
+export const TIER_OPTIONS: {
+  value: Tier;
+  label: string;
+  description: string;
+  replicas: string;
+  sizing: string;
+}[] = [
   {
     value: "tier-1",
     label: "Tier 1 — Critical",

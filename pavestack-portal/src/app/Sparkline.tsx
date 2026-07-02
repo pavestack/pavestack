@@ -30,11 +30,37 @@ export function Sparkline({
     .join(" ");
 
   return (
-    <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} className="overflow-visible" role="img" aria-label="Sample trend sparkline">
-      <polyline points={points} fill="none" stroke={color} strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" />
+    <svg
+      width={width}
+      height={height}
+      viewBox={`0 0 ${width} ${height}`}
+      className="overflow-visible"
+      role="img"
+      aria-label="Sample trend sparkline"
+    >
+      <polyline
+        points={points}
+        fill="none"
+        stroke={color}
+        strokeWidth={1.75}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
       {markers?.map((i) => {
         const x = i * stepX;
-        return <line key={i} x1={x} y1={0} x2={x} y2={height} stroke="var(--danger)" strokeWidth={1} strokeDasharray="2,2" opacity={0.6} />;
+        return (
+          <line
+            key={i}
+            x1={x}
+            y1={0}
+            x2={x}
+            y2={height}
+            stroke="var(--danger)"
+            strokeWidth={1}
+            strokeDasharray="2,2"
+            opacity={0.6}
+          />
+        );
       })}
     </svg>
   );

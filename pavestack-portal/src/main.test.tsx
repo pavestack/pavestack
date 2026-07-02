@@ -35,7 +35,12 @@ const mockService: CatalogService = {
   scorecard: {
     overallScore: 85,
     criteria: [
-      { key: "security_scan_passing", label: "Security Scan Passing", status: "passing", weight: 60 },
+      {
+        key: "security_scan_passing",
+        label: "Security Scan Passing",
+        status: "passing",
+        weight: 60,
+      },
       { key: "docs_present", label: "Docs Present", status: "failing", weight: 40 },
     ],
   },
@@ -83,14 +88,27 @@ describe("UI Components", () => {
 
   describe("CriteriaRow", () => {
     test("renders passing criteria correctly", () => {
-      render(<CriteriaRow item={{ key: "docs_present", label: "Docs Present", status: "passing", weight: 30 }} />);
+      render(
+        <CriteriaRow
+          item={{ key: "docs_present", label: "Docs Present", status: "passing", weight: 30 }}
+        />
+      );
       expect(screen.getByText("Docs Present")).toBeInTheDocument();
       expect(screen.getByText("passing")).toBeInTheDocument();
       expect(screen.getByText("30%")).toBeInTheDocument();
     });
 
     test("renders failing criteria correctly", () => {
-      render(<CriteriaRow item={{ key: "security_scan_passing", label: "Security Scan Passing", status: "failing", weight: 70 }} />);
+      render(
+        <CriteriaRow
+          item={{
+            key: "security_scan_passing",
+            label: "Security Scan Passing",
+            status: "failing",
+            weight: 70,
+          }}
+        />
+      );
       expect(screen.getByText("Security Scan Passing")).toBeInTheDocument();
       expect(screen.getByText("failing")).toBeInTheDocument();
       expect(screen.getByText("70%")).toBeInTheDocument();
@@ -231,7 +249,9 @@ describe("UI Components", () => {
       expect(screen.getByText("Test Service")).toBeInTheDocument();
       expect(screen.getByText("Other Unique Name")).toBeInTheDocument();
 
-      const searchInput = screen.getByPlaceholderText("Search services by name, owner, or description…");
+      const searchInput = screen.getByPlaceholderText(
+        "Search services by name, owner, or description…"
+      );
       fireEvent.change(searchInput, { target: { value: "Unique" } });
 
       expect(screen.queryByText("Test Service")).not.toBeInTheDocument();

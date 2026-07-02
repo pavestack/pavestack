@@ -16,7 +16,9 @@ export function Sidebar({ open, onNavigate }: { open: boolean; onNavigate?: () =
     <nav id="app-sidebar" className={`app-sidebar ${open ? "open" : ""}`} aria-label="Primary">
       <div className="flex items-center gap-2 px-4 h-14 border-b border-pave-border">
         <img src="/brand/mark.svg" alt="" className="w-6 h-6" width={24} height={24} />
-        <span className="wordmark text-sm font-semibold tracking-wide text-pave-text">Pavestack</span>
+        <span className="wordmark text-sm font-semibold tracking-wide text-pave-text">
+          Pavestack
+        </span>
       </div>
       <div className="p-3 space-y-1">
         {NAV_ITEMS.map(({ to, label, icon: Icon, end }) => (
@@ -34,7 +36,9 @@ export function Sidebar({ open, onNavigate }: { open: boolean; onNavigate?: () =
       </div>
       <div className="mt-auto p-3 border-t border-pave-border text-[11px] text-pave-text-muted">
         <p>Pavestack Portal</p>
-        <p className="mt-0.5">Catalog is generated from committed manifests. Write actions call pave-api.</p>
+        <p className="mt-0.5">
+          Catalog is generated from committed manifests. Write actions call pave-api.
+        </p>
       </div>
     </nav>
   );

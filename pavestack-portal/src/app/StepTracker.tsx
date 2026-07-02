@@ -40,7 +40,9 @@ export function StepTracker({ steps }: { steps: JobStep[] }) {
               >
                 {step.name}
               </p>
-              {step.message && <p className="text-xs text-pave-text-muted mt-0.5">{step.message}</p>}
+              {step.message && (
+                <p className="text-xs text-pave-text-muted mt-0.5">{step.message}</p>
+              )}
               {step.timestamp && (
                 <p className="text-[11px] text-pave-text-muted font-mono tabular-nums mt-0.5">
                   {new Date(step.timestamp).toLocaleTimeString()}

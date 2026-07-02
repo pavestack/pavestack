@@ -8,27 +8,25 @@ const repoRoot = path.resolve(__dirname, "..", "..");
 const outputPath = path.join(__dirname, "..", "public", "catalog.json");
 const tenantsRoot = path.join(repoRoot, "platform-config", "tenants");
 
-const searchRoots = [
-  path.join(repoRoot, "service-template-api"),
-  path.join(repoRoot, "services"),
-];
+const searchRoots = [path.join(repoRoot, "service-template-api"), path.join(repoRoot, "services")];
 
 const KNOWN_TIERS = new Set(["tier-1", "tier-2", "tier-3"]);
 const KNOWN_EXPOSURES = new Set(["internal", "public"]);
 
 function toLabel(key) {
-  return key
-    .replaceAll("_", " ")
-    .replace(/\b\w/g, (c) => c.toUpperCase());
+  return key.replaceAll("_", " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 function parseScorecard(scorecardObj) {
   if (!scorecardObj) {
     return { overallScore: 0, criteria: [] };
   }
-  const overallScore = typeof scorecardObj.overall_score === "number"
-    ? scorecardObj.overall_score
-    : (scorecardObj.overall_score ? Number(scorecardObj.overall_score) : 0);
+  const overallScore =
+    typeof scorecardObj.overall_score === "number"
+      ? scorecardObj.overall_score
+      : scorecardObj.overall_score
+        ? Number(scorecardObj.overall_score)
+        : 0;
 
   const criteria = [];
   if (scorecardObj.criteria && typeof scorecardObj.criteria === "object") {
@@ -38,9 +36,7 @@ function parseScorecard(scorecardObj) {
           key,
           label: toLabel(key),
           status: val.status || "unknown",
-          weight: typeof val.weight === "number"
-            ? val.weight
-            : (val.weight ? Number(val.weight) : 0),
+          weight: typeof val.weight === "number" ? val.weight : val.weight ? Number(val.weight) : 0,
           evidence: val.evidence || null,
         });
       } else {
@@ -133,7 +129,9 @@ function readResources(values) {
   const resources = values.resources;
   if (!resources || typeof resources !== "object") return null;
   const pick = (block) =>
-    block && typeof block === "object" ? { cpu: block.cpu ?? null, memory: block.memory ?? null } : null;
+    block && typeof block === "object"
+      ? { cpu: block.cpu ?? null, memory: block.memory ?? null }
+      : null;
   const requests = pick(resources.requests);
   const limits = pick(resources.limits);
   if (!requests && !limits) return null;
@@ -148,7 +146,7 @@ function loadService(dir) {
     : "";
 
   const catalog = yaml.load(catalogContent) || {};
-  const scorecardObj = scorecardContent ? (yaml.load(scorecardContent) || {}) : null;
+  const scorecardObj = scorecardContent ? yaml.load(scorecardContent) || {} : null;
 
   const name = catalog.metadata?.name || "";
   const description = catalog.metadata?.description || "";
@@ -167,10 +165,15 @@ function loadService(dir) {
 
   // tenant.yaml (written by pave create-service) is preferred; fall back to
   // catalog-info.yaml annotations for services onboarded before that field existed.
-  const tier = tenantMeta.tier ?? (KNOWN_TIERS.has(annotations["pavestack.io/tier"]) ? annotations["pavestack.io/tier"] : null);
+  const tier =
+    tenantMeta.tier ??
+    (KNOWN_TIERS.has(annotations["pavestack.io/tier"]) ? annotations["pavestack.io/tier"] : null);
   const runtime = tenantMeta.runtime ?? annotations["pavestack.io/runtime"] ?? null;
   const exposure =
-    tenantMeta.exposure ?? (KNOWN_EXPOSURES.has(annotations["pavestack.io/exposure"]) ? annotations["pavestack.io/exposure"] : null);
+    tenantMeta.exposure ??
+    (KNOWN_EXPOSURES.has(annotations["pavestack.io/exposure"])
+      ? annotations["pavestack.io/exposure"]
+      : null);
 
   const devValues = readEnvValues(tenantDir, "dev");
   const prodValues = readEnvValues(tenantDir, "prod");
@@ -197,8 +200,18 @@ function loadService(dir) {
     // real, sourced from the tenant's committed Helm values — resources are
     // the *configured allocation*, not live usage.
     environments: {
-      dev: { status: "synced", health: "healthy", imageTag: readImageTag(devValues), resources: readResources(devValues) },
-      prod: { status: "synced", health: "healthy", imageTag: readImageTag(prodValues), resources: readResources(prodValues) },
+      dev: {
+        status: "synced",
+        health: "healthy",
+        imageTag: readImageTag(devValues),
+        resources: readResources(devValues),
+      },
+      prod: {
+        status: "synced",
+        health: "healthy",
+        imageTag: readImageTag(prodValues),
+        resources: readResources(prodValues),
+      },
     },
     scorecard: parseScorecard(scorecardObj),
   };

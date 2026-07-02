@@ -145,9 +145,38 @@ export function computeStats(services: CatalogService[]) {
 // Always disclosed in the UI via the `isDemo` flag — never merged silently
 // with real catalog entries.
 
-const DEMO_TEAMS = ["team-payments", "team-checkout", "team-growth", "team-platform", "team-data", "team-identity"];
-const DEMO_ADJECTIVES = ["orbit", "signal", "harbor", "cinder", "quartz", "lumen", "delta", "vertex", "coral", "atlas"];
-const DEMO_NOUNS = ["gateway", "ledger", "router", "worker", "index", "queue", "cache", "notifier", "scheduler", "billing"];
+const DEMO_TEAMS = [
+  "team-payments",
+  "team-checkout",
+  "team-growth",
+  "team-platform",
+  "team-data",
+  "team-identity",
+];
+const DEMO_ADJECTIVES = [
+  "orbit",
+  "signal",
+  "harbor",
+  "cinder",
+  "quartz",
+  "lumen",
+  "delta",
+  "vertex",
+  "coral",
+  "atlas",
+];
+const DEMO_NOUNS = [
+  "gateway",
+  "ledger",
+  "router",
+  "worker",
+  "index",
+  "queue",
+  "cache",
+  "notifier",
+  "scheduler",
+  "billing",
+];
 const DEMO_LIFECYCLES = ["production", "staging", "experimental", "deprecated"];
 const DEMO_TIERS: Tier[] = ["tier-1", "tier-2", "tier-3"];
 const DEMO_RUNTIMES = ["go", "node", "python"];
@@ -165,7 +194,7 @@ function mulberry32(seed: number) {
 
 export function generateDemoServices(count: number, seed = 42): CatalogService[] {
   const rand = mulberry32(seed);
-  const pick = <T,>(arr: T[]): T => arr[Math.floor(rand() * arr.length)];
+  const pick = <T>(arr: T[]): T => arr[Math.floor(rand() * arr.length)];
 
   return Array.from({ length: count }, (_, i) => {
     const name = `${pick(DEMO_ADJECTIVES)}-${pick(DEMO_NOUNS)}-${i}`;
@@ -188,16 +217,50 @@ export function generateDemoServices(count: number, seed = 42): CatalogService[]
       createdVia,
       environments: {
         dev: { status: "synced", health: "healthy", imageTag: `0.${i % 20}.0` },
-        prod: { status: rand() > 0.15 ? "synced" : "outOfSync", health: rand() > 0.1 ? "healthy" : "degraded", imageTag: `0.${i % 20}.0` },
+        prod: {
+          status: rand() > 0.15 ? "synced" : "outOfSync",
+          health: rand() > 0.1 ? "healthy" : "degraded",
+          imageTag: `0.${i % 20}.0`,
+        },
       },
       scorecard: {
         overallScore,
         criteria: [
-          { key: "security_scan_passing", label: "Security Scan Passing", status: rand() > 0.2 ? "passing" : "failing", weight: 30, evidence: null },
-          { key: "docs_present", label: "Docs Present", status: rand() > 0.3 ? "passing" : "failing", weight: 20, evidence: null },
-          { key: "health_endpoint_configured", label: "Health Endpoint Configured", status: rand() > 0.15 ? "passing" : "failing", weight: 25, evidence: null },
-          { key: "container_non_root", label: "Container Non Root", status: rand() > 0.1 ? "passing" : "failing", weight: 15, evidence: null },
-          { key: "gitops_manifests", label: "Gitops Manifests", status: rand() > 0.1 ? "passing" : "failing", weight: 10, evidence: null },
+          {
+            key: "security_scan_passing",
+            label: "Security Scan Passing",
+            status: rand() > 0.2 ? "passing" : "failing",
+            weight: 30,
+            evidence: null,
+          },
+          {
+            key: "docs_present",
+            label: "Docs Present",
+            status: rand() > 0.3 ? "passing" : "failing",
+            weight: 20,
+            evidence: null,
+          },
+          {
+            key: "health_endpoint_configured",
+            label: "Health Endpoint Configured",
+            status: rand() > 0.15 ? "passing" : "failing",
+            weight: 25,
+            evidence: null,
+          },
+          {
+            key: "container_non_root",
+            label: "Container Non Root",
+            status: rand() > 0.1 ? "passing" : "failing",
+            weight: 15,
+            evidence: null,
+          },
+          {
+            key: "gitops_manifests",
+            label: "Gitops Manifests",
+            status: rand() > 0.1 ? "passing" : "failing",
+            weight: 10,
+            evidence: null,
+          },
         ],
       },
       isDemo: true,
