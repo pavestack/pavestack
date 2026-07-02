@@ -37,8 +37,15 @@ jobs:
       - name: Format check
         run: test -z "$(gofmt -l .)" || (gofmt -d . && exit 1)
 
-      - name: Unit tests
-        run: go test ./...
+      - name: Unit tests with coverage
+        run: |
+          go test -coverprofile=coverage.out ./...
+          go tool cover -func=coverage.out | tail -1
+          COVERAGE=$(go tool cover -func=coverage.out | tail -1 | awk '{print $NF}' | tr -d '%')
+          # Floor, not a target - a few points below the ~68% baseline at the
+          # time this was added, so it fails on a real regression, not noise.
+          awk -v cov="$COVERAGE" 'BEGIN { exit !(cov >= 60) }' \
+            || (echo "Coverage ${COVERAGE}% is below the 60% floor" && exit 1)
 
 
       - name: Trivy filesystem scan

@@ -4,11 +4,13 @@
 
 # Go
 vendor/
+**/coverage.out
 
 # Node
 **/node_modules/
 **/.next/
 **/out/
+pavestack-portal/coverage/
 pavestack-portal/public/catalog.json
 
 # Terraform
