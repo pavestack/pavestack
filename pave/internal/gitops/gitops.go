@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/pavestack/pave/internal/cost"
 	"github.com/pavestack/pave/internal/validate"
 )
 
@@ -27,8 +28,17 @@ func WriteTenantManifests(repoRoot string, request validate.ServiceRequest, serv
 	}
 
 	renderer := NewTenantManifestRenderer()
+	profile := cost.ProfileFor(request.Tier)
+	runtime := request.Runtime
+	if runtime == "" {
+		runtime = cost.DefaultRuntime
+	}
+	exposure := request.Exposure
+	if exposure == "" {
+		exposure = cost.DefaultExposure
+	}
 
-	tenantYAML, err := renderer.RenderTenant(request.Name, filepath.ToSlash(relHelmPath), request.Team, request.Database)
+	tenantYAML, err := renderer.RenderTenantExtended(request.Name, filepath.ToSlash(relHelmPath), request.Team, request.Database, string(profile.Tier), runtime, exposure)
 	if err != nil {
 		return err
 	}
@@ -45,11 +55,17 @@ func WriteTenantManifests(repoRoot string, request validate.ServiceRequest, serv
 	}
 
 	imageRepo := fmt.Sprintf("123456789012.dkr.ecr.us-east-1.amazonaws.com/pavestack/%s-api", request.Name)
-	devValues, err := renderer.RenderValues(request.Name, imageRepo, 1, "debug")
+	resources := ResourceRequirements{
+		RequestCPU:    profile.Resources.RequestCPU,
+		RequestMemory: profile.Resources.RequestMemory,
+		LimitCPU:      profile.Resources.LimitCPU,
+		LimitMemory:   profile.Resources.LimitMemory,
+	}
+	devValues, err := renderer.RenderValuesTiered(request.Name, imageRepo, profile.Replicas.Dev, "debug", request.Team, resources)
 	if err != nil {
 		return err
 	}
-	prodValues, err := renderer.RenderValues(request.Name, imageRepo, 2, "info")
+	prodValues, err := renderer.RenderValuesTiered(request.Name, imageRepo, profile.Replicas.Prod, "info", request.Team, resources)
 	if err != nil {
 		return err
 	}
@@ -84,4 +100,11 @@ func WriteTenantManifests(repoRoot string, request validate.ServiceRequest, serv
 func CreatePullRequest(repoRoot string, request validate.ServiceRequest, branch string) error {
 	vc := NewVersionControl(repoRoot)
 	return vc.CreatePullRequest(request, branch)
+}
+
+// CreatePullRequestURL delegates to VersionControl and also returns the
+// created PR's URL, for callers (pave-api) that need to surface a link.
+func CreatePullRequestURL(repoRoot string, request validate.ServiceRequest, branch string) (string, error) {
+	vc := NewVersionControl(repoRoot)
+	return vc.CreatePullRequestURL(request, branch)
 }

@@ -1,100 +1,168 @@
 @import "tailwindcss";
+@import "./styles/tokens.css";
 
+/*
+  Tailwind v4 theme layer — all color/radius/shadow/font values resolve
+  through the shared brand tokens in ./styles/tokens.css (canonical source:
+  /brand/tokens.css). Do not hardcode a parallel hex palette here; add a new
+  semantic alias below only if tokens.css doesn't already provide one.
+*/
 @theme {
-  --color-pave-950: #0d1117;
-  --color-pave-900: #161b22;
-  --color-pave-850: #1c2128;
-  --color-pave-800: #21262d;
-  --color-pave-700: #30363d;
-  --color-pave-600: #484f58;
-  --color-pave-500: #8b949e;
-  --color-pave-400: #c9d1d9;
-  --color-pave-300: #e6edf3;
-  --color-pave-accent: #58a6ff;
-  --color-pave-accent-hover: #79c0ff;
-  --color-pave-success: #3fb950;
-  --color-pave-warning: #d29922;
-  --color-pave-danger: #f85149;
-  --color-pave-teal: #39d2c0;
-  --color-pave-teal-dim: #1b7c6d;
-  --color-pave-purple: #bc8cff;
-  --color-pave-purple-dim: #6e40c9;
+  --color-pave-bg: var(--bg);
+  --color-pave-elevated: var(--bg-elevated);
+  --color-pave-surface: var(--bg-surface);
+  --color-pave-surface-hover: var(--bg-surface-hover);
+  --color-pave-border: var(--border);
+  --color-pave-border-strong: var(--border-strong);
 
-  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
-  --font-mono: 'JetBrains Mono', 'IBM Plex Mono', monospace;
+  --color-pave-text: var(--text-primary);
+  --color-pave-text-secondary: var(--text-secondary);
+  --color-pave-text-muted: var(--text-muted);
 
-  --radius-xl: 12px;
-  --radius-2xl: 16px;
+  --color-pave-accent: var(--accent);
+  --color-pave-accent-hover: var(--accent-hover);
+  --color-pave-accent-contrast: var(--accent-contrast);
+  --color-pave-highlight: var(--highlight);
+  --color-pave-success: var(--success);
+  --color-pave-warning: var(--warning);
+  --color-pave-danger: var(--danger);
+  --color-pave-info: var(--info);
 
-  --shadow-glow: 0 0 20px rgba(88, 166, 255, 0.15);
-  --shadow-glow-teal: 0 0 20px rgba(57, 210, 192, 0.15);
-  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(48, 54, 61, 0.5);
-  --shadow-card-hover: 0 4px 12px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(88, 166, 255, 0.3);
+  --font-sans: var(--font-body);
+  --font-display: var(--font-display);
+  --font-mono: var(--font-mono);
 
-  --animate-fade-in: fadeIn 0.5s ease-out both;
-  --animate-slide-up: slideUp 0.5s ease-out both;
-  --animate-scale-in: scaleIn 0.3s ease-out both;
-  --animate-pulse-slow: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-  --animate-score-fill: scoreFill 1s ease-out both;
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-xl: var(--radius-lg);
+
+  --shadow-card: var(--shadow-card);
+  --shadow-glow: var(--shadow-glow);
+
+  --animate-fade-in: fadeIn 0.4s ease-out both;
+  --animate-slide-up: slideUp 0.4s ease-out both;
+  --animate-pulse-slow: pulse 2.4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  --animate-score-fill: scoreFill 0.8s ease-out both;
+  --animate-shimmer: shimmer 1.6s ease-in-out infinite;
+
+  --breakpoint-xs: 30rem;
 
   @keyframes fadeIn {
     0% { opacity: 0; }
     100% { opacity: 1; }
   }
   @keyframes slideUp {
-    0% { opacity: 0; transform: translateY(16px); }
+    0% { opacity: 0; transform: translateY(10px); }
     100% { opacity: 1; transform: translateY(0); }
-  }
-  @keyframes scaleIn {
-    0% { opacity: 0; transform: scale(0.95); }
-    100% { opacity: 1; transform: scale(1); }
   }
   @keyframes scoreFill {
     0% { stroke-dashoffset: 251.2; }
   }
-
-  --bg-gradient-radial: radial-gradient(var(--tw-gradient-stops));
-  --bg-hero-pattern: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(88, 166, 255, 0.08), transparent);
+  @keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
 }
 
-:root {
-  color-scheme: dark;
+html,
+body,
+#root {
+  height: 100%;
 }
 
 * {
   scrollbar-width: thin;
-  scrollbar-color: var(--color-pave-700) transparent;
+  scrollbar-color: var(--border-strong) transparent;
 }
 
 body {
-  @apply bg-pave-950 text-pave-300 antialiased font-sans;
+  @apply bg-pave-bg text-pave-text antialiased font-sans;
   min-height: 100vh;
-  background-image: radial-gradient(
-    ellipse 80% 50% at 50% -20%,
-    rgba(88, 166, 255, 0.06),
-    transparent
-  );
 }
 
-/* Stagger animation delay helper */
-.stagger-1 { animation-delay: 0.05s; }
-.stagger-2 { animation-delay: 0.1s; }
-.stagger-3 { animation-delay: 0.15s; }
-.stagger-4 { animation-delay: 0.2s; }
-.stagger-5 { animation-delay: 0.25s; }
-.stagger-6 { animation-delay: 0.3s; }
-.stagger-7 { animation-delay: 0.35s; }
-.stagger-8 { animation-delay: 0.4s; }
+/* Numeric / tabular data — required wherever counts, scores or IDs render */
+.tabular-nums,
+.font-mono {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── App shell: fixed sidebar + sticky header, single scrolling region ── */
+:root {
+  --sidebar-width: 240px;
+}
+
+.app-shell {
+  height: 100vh;
+  overflow: hidden;
+}
+
+.app-sidebar {
+  @apply border-r border-pave-border bg-pave-elevated;
+  position: fixed;
+  inset: 0 auto 0 0;
+  width: var(--sidebar-width);
+  overflow-y: auto;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  transform: translateX(-100%);
+  transition: transform 0.2s ease;
+}
+
+.app-sidebar.open {
+  transform: translateX(0);
+}
+
+@media (min-width: 900px) {
+  .app-sidebar {
+    transform: translateX(0);
+  }
+}
+
+.app-sidebar-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 20;
+}
+
+@media (min-width: 900px) {
+  .app-sidebar-backdrop {
+    display: none;
+  }
+}
+
+.app-main-col {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  min-width: 0;
+}
+
+@media (min-width: 900px) {
+  .app-main-col {
+    margin-left: var(--sidebar-width);
+  }
+}
+
+.app-header {
+  @apply border-b border-pave-border bg-pave-elevated;
+  flex: 0 0 auto;
+}
+
+.app-scroll-region {
+  flex: 1 1 auto;
+  overflow-y: auto;
+}
 
 @layer components {
   .card {
-    @apply rounded-xl border border-pave-700 bg-pave-900/80 backdrop-blur-sm shadow-card;
-    transition: border-color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease;
+    @apply rounded-xl border border-pave-border bg-pave-surface shadow-card;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
   }
 
   .card:hover {
-    @apply border-pave-accent/30 shadow-card-hover;
-    transform: translateY(-2px);
+    @apply border-pave-accent/30;
   }
 
   .badge {
@@ -102,41 +170,89 @@ body {
   }
 
   .badge-success {
-    @apply bg-pave-success/15 text-pave-success border border-pave-success/20;
+    @apply bg-pave-success/15 text-pave-success border border-pave-success/25;
   }
 
   .badge-warning {
-    @apply bg-pave-warning/15 text-pave-warning border border-pave-warning/20;
+    @apply bg-pave-warning/15 text-pave-warning border border-pave-warning/25;
   }
 
   .badge-danger {
-    @apply bg-pave-danger/15 text-pave-danger border border-pave-danger/20;
+    @apply bg-pave-danger/15 text-pave-danger border border-pave-danger/25;
   }
 
   .badge-neutral {
-    @apply bg-pave-800 text-pave-500 border border-pave-700;
+    @apply bg-pave-surface-hover text-pave-text-secondary border border-pave-border;
   }
 
   .badge-accent {
-    @apply bg-pave-accent/10 text-pave-accent border border-pave-accent/20;
+    @apply bg-pave-accent/10 text-pave-accent border border-pave-accent/25;
+  }
+
+  .badge-info {
+    @apply bg-pave-info/15 text-pave-info border border-pave-info/25;
   }
 
   .stat-card {
-    @apply rounded-xl border border-pave-700 bg-pave-900/60 backdrop-blur-sm p-5;
-    transition: border-color 0.25s ease;
+    @apply rounded-xl border border-pave-border bg-pave-surface p-4;
+    transition: border-color 0.2s ease;
   }
 
   .stat-card:hover {
-    @apply border-pave-600;
+    @apply border-pave-border-strong;
   }
 
   .search-input {
-    @apply w-full rounded-lg border border-pave-700 bg-pave-850 px-4 py-2.5 text-sm text-pave-300 placeholder-pave-600;
-    @apply outline-none transition-all duration-200;
+    @apply w-full rounded-lg border border-pave-border bg-pave-surface px-3 py-2 text-sm text-pave-text placeholder-pave-text-muted;
+    @apply outline-none transition-all duration-150;
   }
 
   .search-input:focus {
-    @apply border-pave-accent/50 ring-1 ring-pave-accent/20;
+    @apply border-pave-accent/60 ring-1 ring-pave-accent/25;
+  }
+
+  .btn {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-lg px-3.5 py-2 text-sm font-medium transition-colors duration-150 outline-none disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-primary {
+    @apply bg-pave-accent text-pave-accent-contrast hover:bg-pave-accent-hover;
+  }
+
+  .btn-secondary {
+    @apply bg-pave-surface border border-pave-border text-pave-text hover:border-pave-border-strong hover:bg-pave-surface-hover;
+  }
+
+  .btn:focus-visible {
+    @apply ring-2 ring-pave-accent/40;
+  }
+
+  .nav-link {
+    @apply flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-pave-text-secondary transition-colors duration-150;
+  }
+
+  .nav-link:hover {
+    @apply bg-pave-surface-hover text-pave-text;
+  }
+
+  .nav-link.active {
+    @apply bg-pave-accent/10 text-pave-accent;
+  }
+
+  .skeleton {
+    @apply rounded-md bg-pave-surface-hover;
+    background-image: linear-gradient(
+      90deg,
+      var(--bg-surface-hover) 25%,
+      var(--border) 50%,
+      var(--bg-surface-hover) 75%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.6s ease-in-out infinite;
+  }
+
+  .th-sortable {
+    @apply cursor-pointer select-none whitespace-nowrap text-left text-xs font-semibold uppercase tracking-wider text-pave-text-muted hover:text-pave-text-secondary;
   }
 
   /* Circular score indicator */
@@ -147,7 +263,7 @@ body {
 
   .score-ring-track {
     fill: none;
-    stroke: var(--color-pave-800);
+    stroke: var(--border);
     stroke-width: 4;
   }
 
@@ -155,17 +271,12 @@ body {
     fill: none;
     stroke-width: 4;
     stroke-linecap: round;
-    transition: stroke-dashoffset 1s ease-out;
+    transition: stroke-dashoffset 0.8s ease-out;
   }
 }
 
 @layer utilities {
-  .text-gradient {
-    @apply bg-clip-text text-transparent;
-    background-image: linear-gradient(135deg, var(--color-pave-accent), var(--color-pave-teal));
-  }
-
-  .border-gradient {
-    border-image: linear-gradient(135deg, var(--color-pave-accent), var(--color-pave-teal)) 1;
+  .wordmark {
+    font-family: var(--font-display);
   }
 }

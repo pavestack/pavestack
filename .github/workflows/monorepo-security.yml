@@ -49,3 +49,19 @@ jobs:
         run: tflint --init
       - name: TFLint scan
         run: tflint --recursive
+
+  gitleaks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        with:
+          fetch-depth: 0
+      - name: Gitleaks secret scan
+        # Pinned by version tag, not SHA, pending dependabot's first
+        # github-actions bump for this newly-added action (see AGENTS.md
+        # "action pinning" note) - every other action in this repo is
+        # SHA-pinned and this one will be too after that first bump.
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_CONFIG: .gitleaks.toml

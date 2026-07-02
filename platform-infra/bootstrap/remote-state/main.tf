@@ -6,6 +6,8 @@ locals {
     Repository  = "platform-infra"
     Environment = var.environment
     ManagedBy   = "terraform"
+    CostCenter  = var.cost_center
+    Team        = var.team
   }
 }
 
@@ -15,6 +17,7 @@ resource "aws_kms_key" "state" {
   description             = "KMS key for Pavestack Terraform state"
   deletion_window_in_days = 30
   enable_key_rotation     = true
+  tags                    = local.tags
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
@@ -41,6 +44,7 @@ resource "aws_s3_bucket" "state" {
   # checkov:skip=CKV2_AWS_62:Event notifications are not required for remote state bucket
   bucket        = local.bucket_name
   force_destroy = var.force_destroy
+  tags          = local.tags
 }
 
 resource "aws_s3_bucket_versioning" "state" {

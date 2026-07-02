@@ -21,3 +21,15 @@ variable "force_destroy" {
   default     = false
 }
 
+variable "cost_center" {
+  description = "FinOps cost-center tag applied to every resource this environment provisions. See AGENTS.md 'cost-tagging convention'."
+  type        = string
+  default     = "platform-engineering"
+}
+
+variable "team" {
+  description = "Owning team tag, matching the pavestack.io/team label convention used in platform-config."
+  type        = string
+  default     = "platform"
+}
+

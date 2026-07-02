@@ -14,6 +14,28 @@ type ServiceRequest struct {
 	Name     string `json:"name"`
 	Team     string `json:"team"`
 	Database bool   `json:"database"`
+	// Runtime, Exposure, and Tier are optional (added after the initial GA of
+	// pave create-service) and default via ApplyDefaults so older callers and
+	// serialized requests that omit them keep validating.
+	Runtime  string `json:"runtime,omitempty"`
+	Exposure string `json:"exposure,omitempty"`
+	Tier     string `json:"tier,omitempty"`
+}
+
+// ApplyDefaults fills unset optional fields with the platform defaults.
+// The CLI, and the pave-api HTTP handlers, must call this before Validate so
+// that a request missing runtime/exposure/tier resolves identically no
+// matter which entry point created it.
+func (r *ServiceRequest) ApplyDefaults() {
+	if r.Runtime == "" {
+		r.Runtime = "go"
+	}
+	if r.Exposure == "" {
+		r.Exposure = "internal"
+	}
+	if r.Tier == "" {
+		r.Tier = "tier-2"
+	}
 }
 
 type Validator struct {

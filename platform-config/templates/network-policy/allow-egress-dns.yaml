@@ -1,0 +1,24 @@
+# default-deny.yaml denies all ingress and egress. Without this, pods can't
+# even resolve in-cluster or external hostnames (DNS to kube-dns/CoreDNS is
+# egress too), which would make every tenant workload silently unusable.
+# This is the one platform-wide egress allow every tenant gets "for free";
+# any other egress (e.g. to a managed database, another tenant, or the
+# internet) must be declared by the service's own Helm chart, matching how
+# service-template-api's networkpolicy.yaml declares its own ingress allow.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-egress-dns
+  namespace: REPLACE_NAMESPACE
+spec:
+  podSelector: {}
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53

@@ -1,0 +1,5 @@
+<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="pavestackMonoMarkTitle">
+  <title id="pavestackMonoMarkTitle">Pavestack</title>
+  <path d="M32 4 L57 18 L57 46 L32 60 L7 46 L7 18 Z" fill="none" stroke="currentColor" stroke-width="5" stroke-linejoin="round"/>
+  <path d="M23 20 L40 32 L23 44" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" opacity="0.55"/>
+</svg>

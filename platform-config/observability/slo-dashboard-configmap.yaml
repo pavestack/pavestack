@@ -1,0 +1,87 @@
+# "Dashboards as code": this ConfigMap is picked up automatically by the
+# kube-prometheus-stack Grafana sidecar (sidecar.dashboards.enabled: true,
+# label: grafana_dashboard - see platform-addons.yaml) and provisioned into
+# Grafana with no manual click-ops. Edit the dashboard by editing this
+# file and letting Argo CD sync it, not by editing it in the Grafana UI
+# (UI edits don't persist - Argo CD's selfHeal reverts them on next sync).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: service-template-api-slo-dashboard
+  namespace: monitoring
+  labels:
+    grafana_dashboard: "1"
+    pavestack.io/team: platform
+data:
+  service-template-api-slo.json: |
+    {
+      "title": "service-template-api - SLO & error budget",
+      "uid": "service-template-api-slo",
+      "tags": ["pavestack", "slo"],
+      "timezone": "utc",
+      "schemaVersion": 39,
+      "panels": [
+        {
+          "id": 1,
+          "title": "Request rate (golden signal: traffic)",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+          "targets": [
+            { "expr": "sum(rate(http_server_request_duration_seconds_count{job=\"service-template-api\"}[5m]))", "legendFormat": "req/s" }
+          ]
+        },
+        {
+          "id": 2,
+          "title": "Error rate (golden signal: errors)",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+          "targets": [
+            { "expr": "service_template_api:errors_ratio_rate5m", "legendFormat": "5m error ratio" },
+            { "expr": "service_template_api:errors_ratio_rate1h", "legendFormat": "1h error ratio" }
+          ]
+        },
+        {
+          "id": 3,
+          "title": "Latency p50/p95/p99 (golden signal: latency)",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+          "targets": [
+            { "expr": "histogram_quantile(0.50, sum(rate(http_server_request_duration_seconds_bucket{job=\"service-template-api\"}[5m])) by (le))", "legendFormat": "p50" },
+            { "expr": "histogram_quantile(0.95, sum(rate(http_server_request_duration_seconds_bucket{job=\"service-template-api\"}[5m])) by (le))", "legendFormat": "p95" },
+            { "expr": "histogram_quantile(0.99, sum(rate(http_server_request_duration_seconds_bucket{job=\"service-template-api\"}[5m])) by (le))", "legendFormat": "p99" }
+          ]
+        },
+        {
+          "id": 4,
+          "title": "30d error budget remaining",
+          "type": "gauge",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percent",
+              "min": 0,
+              "max": 100,
+              "thresholds": {
+                "steps": [
+                  { "value": 0, "color": "red" },
+                  { "value": 20, "color": "orange" },
+                  { "value": 50, "color": "green" }
+                ]
+              }
+            }
+          },
+          "targets": [
+            { "expr": "100 * (1 - (service_template_api:errors_ratio_rate3d / 0.005))", "legendFormat": "budget remaining %" }
+          ]
+        },
+        {
+          "id": 5,
+          "title": "Burn-rate alert state",
+          "type": "table",
+          "gridPos": { "h": 6, "w": 24, "x": 0, "y": 16 },
+          "targets": [
+            { "expr": "ALERTS{alertname=~\"ServiceTemplateAPISLO.*\"}", "format": "table", "instant": true }
+          ]
+        }
+      ]
+    }

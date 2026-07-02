@@ -1,5 +1,10 @@
 replicaCount: 2
 
+# team feeds the pavestack.io/team label the require-pavestack-labels
+# Kyverno ClusterPolicy enforces on every workload. pave create-service
+# overrides this per tenant in platform-config/tenants/<name>/{dev,prod}/values.yaml.
+team: platform
+
 image:
   repository: 123456789012.dkr.ecr.us-east-1.amazonaws.com/pavestack/service-template-api
   tag: "0.1.0"
@@ -53,3 +58,18 @@ securityContext:
 
 networkPolicy:
   enabled: true
+
+# Progressive delivery via Argo Rollouts (installed cluster-wide by
+# platform-config/clusters/*/platform-addons.yaml). Set analysisEnabled:
+# false to run a plain canary with only timed pauses (no automated
+# metric-based rollback) - e.g. for a brand-new service with no traffic
+# history yet to alarm on.
+rollout:
+  analysisEnabled: true
+  prometheusAddress: http://prometheus-operated.monitoring.svc.cluster.local:9090
+  steps:
+    - setWeight: 20
+    - pauseSeconds: 60
+    - setWeight: 50
+    - pauseSeconds: 60
+    - setWeight: 100

@@ -1,11 +1,18 @@
 locals {
   name = "${var.name_prefix}-${var.environment}"
 
+  # Cost-attribution tag set - every AWS resource in this environment gets
+  # these via merge(var.tags, ...) in each module (see modules/*/main.tf),
+  # and the Team value matches the pavestack.io/team k8s label convention
+  # so AWS Cost Explorer and in-cluster cost attribution use the same team
+  # slug. See AGENTS.md "cost-tagging convention".
   tags = {
     Project     = "pavestack"
     Repository  = "platform-infra"
     Environment = var.environment
     ManagedBy   = "terraform"
+    CostCenter  = var.cost_center
+    Team        = var.team
   }
 
   github_actions_role_arns = var.enable_github_oidc_role ? [module.github_oidc[0].role_arn] : []

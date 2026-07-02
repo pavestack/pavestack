@@ -1,0 +1,173 @@
+# Cluster-wide platform add-ons: policy enforcement (Kyverno) and
+# progressive delivery (Argo Rollouts). Picked up by root-application.yaml's
+# directory.recurse include filter (platform-addons.yaml is listed
+# alongside project-pavestack.yaml/applicationset-*.yaml). These are
+# cluster-scoped installs, not per-tenant, so they live outside
+# platform-config/tenants/ - see AGENTS.md "cluster add-ons vs tenant
+# workloads".
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kyverno
+  namespace: argocd
+  # Kyverno must sync before kyverno-policies and before any tenant
+  # workload - Argo CD doesn't have native cross-Application ordering, so
+  # this relies on the CRDs/webhook being up before the policies Application
+  # is (re)synced. In practice this only matters on very first bootstrap;
+  # steady-state reconciliation is order-independent.
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+spec:
+  project: pavestack
+  source:
+    repoURL: https://kyverno.github.io/kyverno/
+    chart: kyverno
+    targetRevision: 3.2.6
+    helm:
+      releaseName: kyverno
+      values: |
+        admissionController:
+          replicas: 1
+        backgroundController:
+          enabled: true
+        reportsController:
+          enabled: true
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kyverno
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kyverno-policies
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  project: pavestack
+  source:
+    repoURL: https://github.com/pavestack/pavestack.git
+    targetRevision: main
+    path: platform-config/policies/kyverno
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kyverno
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: argo-rollouts
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+spec:
+  project: pavestack
+  source:
+    repoURL: https://argoproj.github.io/argo-helm
+    chart: argo-rollouts
+    targetRevision: 2.37.7
+    helm:
+      releaseName: argo-rollouts
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argo-rollouts
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+---
+# Prometheus Operator (CRDs: Prometheus, Alertmanager, PrometheusRule,
+# ServiceMonitor) + Grafana. Provides: (1) the PrometheusRule CRD consumed
+# by platform-config/observability/slo-burn-rate-alerts.yaml, (2) the
+# Prometheus instance the Argo Rollouts AnalysisTemplate queries during
+# canary analysis (service-template-api's rollout.yaml), and (3) the
+# Grafana dashboard-provisioning sidecar that auto-loads any ConfigMap
+# labeled `grafana_dashboard: "1"` - see
+# platform-config/observability/slo-dashboard-configmap.yaml, Pavestack's
+# "dashboards as code" mechanism (no manually-clicked-together dashboards).
+# Sized conservatively (single replica, 7-day retention) for a
+# platform-team-operated cluster, not a high-cardinality production SaaS -
+# raise retention/resources in prod via the values override below before
+# relying on it for real incident response.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kube-prometheus-stack
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+spec:
+  project: pavestack
+  source:
+    repoURL: https://prometheus-community.github.io/helm-charts
+    chart: kube-prometheus-stack
+    targetRevision: 65.5.1
+    helm:
+      releaseName: kube-prometheus-stack
+      values: |
+        prometheus:
+          prometheusSpec:
+            retention: 7d
+            resources:
+              requests: { cpu: 200m, memory: 512Mi }
+              limits: { cpu: "1", memory: 1Gi }
+            ruleSelectorNilUsesHelmValues: false
+            serviceMonitorSelectorNilUsesHelmValues: false
+        alertmanager:
+          alertmanagerSpec:
+            resources:
+              requests: { cpu: 50m, memory: 64Mi }
+              limits: { cpu: 200m, memory: 128Mi }
+        grafana:
+          enabled: true
+          sidecar:
+            dashboards:
+              enabled: true
+              label: grafana_dashboard
+          resources:
+            requests: { cpu: 50m, memory: 128Mi }
+            limits: { cpu: 200m, memory: 256Mi }
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true # kube-prometheus-stack's CRDs exceed kubectl's annotation size limit for client-side apply
+---
+# SLO burn-rate alerts + the Grafana dashboard-as-code ConfigMap - see
+# platform-config/observability/. Waits (sync-wave 0, the default) until
+# after kube-prometheus-stack (wave -2) so the PrometheusRule CRD exists.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: platform-observability
+  namespace: argocd
+spec:
+  project: pavestack
+  source:
+    repoURL: https://github.com/pavestack/pavestack.git
+    targetRevision: main
+    path: platform-config/observability
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

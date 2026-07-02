@@ -106,6 +106,32 @@ jobs:
           severity: CRITICAL,HIGH
           exit-code: 1
 
+      # anchore/sbom-action and sigstore/cosign-installer are pinned by
+      # version tag rather than SHA, pending dependabot's first
+      # github-actions bump for these newly-added actions - see the
+      # "action pinning" note in AGENTS.md.
+      - name: Generate SBOM
+        uses: anchore/sbom-action@v0.20.9
+        with:
+          image: ${{ env.IMAGE }}
+          format: spdx-json
+          output-file: sbom.spdx.json
+          upload-artifact: true
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v4.1.2
+
+      # Keyless signing: cosign uses the job's GitHub OIDC token (id-token:
+      # write, already granted above) to get a short-lived Fulcio cert and
+      # records the signature in the public Rekor transparency log - no
+      # signing key is generated or stored anywhere.
+      - name: Sign image and attest SBOM (keyless, GitHub OIDC)
+        env:
+          IMAGE: ${{ env.IMAGE }}
+        run: |
+          cosign sign --yes "${IMAGE}"
+          cosign attest --yes --predicate sbom.spdx.json --type spdxjson "${IMAGE}"
+
       - name: Update platform-config image tag
         env:
           TAG: ${{ steps.meta.outputs.tag }}

@@ -42,8 +42,22 @@ patches:
         path: /metadata/namespace
         value: service-template-api
   - target:
+      kind: NetworkPolicy
+      name: allow-egress-dns
+    patch: |
+      - op: replace
+        path: /metadata/namespace
+        value: service-template-api
+  - target:
       kind: ResourceQuota
       name: tenant-quota
+    patch: |
+      - op: replace
+        path: /metadata/namespace
+        value: service-template-api
+  - target:
+      kind: LimitRange
+      name: tenant-limits
     patch: |
       - op: replace
         path: /metadata/namespace

@@ -1,10 +1,7 @@
 package cli
 
 import (
-	"fmt"
-	"os"
-	"path/filepath"
-
+	"github.com/pavestack/pave/internal/workspace"
 	"github.com/spf13/cobra"
 )
 
@@ -24,34 +21,5 @@ func Execute() error {
 }
 
 func repoRoot() (string, error) {
-	if value := os.Getenv("PAVESTACK_ROOT"); value != "" {
-		return value, nil
-	}
-	cwd, err := os.Getwd()
-	if err != nil {
-		return "", fmt.Errorf("resolve working directory: %w", err)
-	}
-
-	for {
-		if isRepoRoot(cwd) {
-			return cwd, nil
-		}
-		parent := filepath.Dir(cwd)
-		if parent == cwd {
-			break
-		}
-		cwd = parent
-	}
-
-	return "", fmt.Errorf("could not find Pavestack repository root; set PAVESTACK_ROOT")
-}
-
-func isRepoRoot(path string) bool {
-	required := []string{"platform-config", "service-template-api", "pave"}
-	for _, name := range required {
-		if _, err := os.Stat(filepath.Join(path, name)); err != nil {
-			return false
-		}
-	}
-	return true
+	return workspace.Root()
 }

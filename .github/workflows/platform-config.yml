@@ -35,7 +35,7 @@ jobs:
           directory: platform-config
           framework: kubernetes
           quiet: true
-          soft_fail: true
+          config_file: .checkov.yaml
 
       - name: Trivy config scan
         uses: aquasecurity/trivy-action@cf5c088a69634cd13ccddc735d7926162c31f9a6 # master

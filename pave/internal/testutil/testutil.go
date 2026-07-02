@@ -64,6 +64,18 @@ func SetupWorkspace(t *testing.T, fsys ...afero.Fs) (afero.Fs, string) {
     "database": {
       "type": "boolean",
       "description": "Whether the service requires a managed database"
+    },
+    "runtime": {
+      "type": "string",
+      "enum": ["go"]
+    },
+    "exposure": {
+      "type": "string",
+      "enum": ["internal", "public"]
+    },
+    "tier": {
+      "type": "string",
+      "enum": ["tier-1", "tier-2", "tier-3"]
     }
   }
 }`

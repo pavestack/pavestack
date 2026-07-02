@@ -124,6 +124,44 @@ jobs:
       - name: Terraform plan
         run: terraform -chdir=envs/${{ matrix.environment }} plan -no-color -out=tfplan
 
+  infracost:
+    name: infracost
+    if: github.event_name == 'pull_request' && secrets.INFRACOST_API_KEY != ''
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        with:
+          fetch-depth: 0
+
+      # FinOps visibility: shows the estimated monthly cost delta a
+      # platform-infra PR introduces, directly on the PR - no cloud
+      # credentials required (Infracost prices from Terraform HCL using its
+      # own provider price catalog, not a real `terraform plan`). Pinned by
+      # version tag pending dependabot's first github-actions bump for this
+      # newly-added action - see the "action pinning" note in AGENTS.md.
+      - name: Setup Infracost
+        uses: infracost/actions/setup@v3
+        with:
+          api-key: ${{ secrets.INFRACOST_API_KEY }}
+
+      - name: Generate Infracost cost estimate (dev)
+        run: infracost breakdown --path=platform-infra/envs/dev --format=json --out-file=/tmp/infracost-dev.json
+
+      - name: Generate Infracost cost estimate (prod)
+        run: infracost breakdown --path=platform-infra/envs/prod --format=json --out-file=/tmp/infracost-prod.json
+
+      - name: Post cost estimate comment
+        run: |
+          infracost output --path=/tmp/infracost-dev.json --path=/tmp/infracost-prod.json --format=github-comment --out-file=/tmp/infracost-comment.md
+          infracost comment github --path=/tmp/infracost-comment.md \
+            --repo="$GITHUB_REPOSITORY" \
+            --github-token="${{ secrets.GITHUB_TOKEN }}" \
+            --pull-request="${{ github.event.pull_request.number }}" \
+            --behavior=update
+
   apply:
     name: apply
     needs: fmt-validate-scan

@@ -173,9 +173,27 @@ Production follows the same commands with `ENV=prod`.
 ## CI/CD Workflow
 
 - Pull requests run `terraform fmt`, `terraform validate`, Checkov scanning, and `terraform plan`.
+- Pull requests also run Infracost (`infracost` job, gated on the
+  `INFRACOST_API_KEY` secret being set) and post the estimated monthly cost
+  delta as a PR comment — FinOps visibility at review time, before anything
+  applies. Infracost prices from HCL directly and needs no AWS credentials.
 - Applies run only from `main` or manual dispatch.
 - GitHub environment protection should require approval for `prod`.
 - GitHub Actions uses AWS OIDC; no long-lived AWS keys are required.
+
+## Cost-tagging convention
+
+Every resource is tagged via a single `local.tags` map per environment
+(`envs/{dev,prod}/main.tf`, `bootstrap/remote-state/main.tf`), merged into
+each module's resources: `Project`, `Repository`, `Environment`,
+`ManagedBy`, `CostCenter` (`var.cost_center`, default
+`platform-engineering`), and `Team` (`var.team`, default `platform`). The
+`Team` tag value intentionally matches the `pavestack.io/team` Kubernetes
+label a tenant namespace/workload carries (see
+`platform-config/templates/namespace` and
+`platform-config/policies/kyverno/require-labels.yaml`), so AWS Cost
+Explorer cost-allocation-tag reports and in-cluster cost attribution use
+the same team slug instead of two parallel, drifting taxonomies.
 
 ## Downstream Outputs
 

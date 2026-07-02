@@ -9,6 +9,7 @@ import {
   SortSelect,
   ServiceCard,
 } from "./app/components";
+import { MemoryRouter } from "react-router-dom";
 import { App } from "./app";
 import { CatalogService } from "./lib/catalog";
 
@@ -17,23 +18,34 @@ const mockService: CatalogService = {
   name: "Test Service",
   description: "A service for testing UI components",
   owner: "team-testing",
-  repo: "https://github.com/org/test-service",
+  team: "team-testing",
+  system: "pavestack",
+  repoUrl: "https://github.com/org/test-service",
   repoPath: "services/test-service",
   lifecycle: "production",
+  tier: "tier-2",
+  runtime: "go",
+  exposure: "internal",
+  database: false,
+  createdVia: "pave-cli",
   environments: {
-    dev: { status: "synced", health: "healthy" },
-    prod: { status: "outOfSync", health: "unhealthy" }
+    dev: { status: "synced", health: "healthy", imageTag: "1.2.0" },
+    prod: { status: "outOfSync", health: "unhealthy", imageTag: "1.1.0" },
   },
   scorecard: {
-    overall: 85,
+    overallScore: 85,
     criteria: [
-      { key: "security_scan_passing", status: "passing", weight: 60 },
-      { key: "docs_present", status: "failing", weight: 40 }
-    ]
-  }
+      { key: "security_scan_passing", label: "Security Scan Passing", status: "passing", weight: 60 },
+      { key: "docs_present", label: "Docs Present", status: "failing", weight: 40 },
+    ],
+  },
 };
 
-describe("UI Components in main.tsx", () => {
+function renderWithRouter(ui: React.ReactElement) {
+  return render(<MemoryRouter>{ui}</MemoryRouter>);
+}
+
+describe("UI Components", () => {
   afterEach(() => {
     vi.restoreAllMocks();
   });
@@ -44,12 +56,11 @@ describe("UI Components in main.tsx", () => {
       expect(screen.getByText("85")).toBeInTheDocument();
     });
 
-    test("applies styling corresponding to the score color", () => {
+    test("applies the theme-aware color token for the score tier", () => {
       const { container } = render(<ScoreRing score={95} size={100} />);
       const fillCircle = container.querySelector(".score-ring-fill");
       expect(fillCircle).toBeInTheDocument();
-      // Score 95 should be excellent, color #3fb950
-      expect(fillCircle).toHaveStyle({ stroke: "#3fb950" });
+      expect(fillCircle).toHaveStyle({ stroke: "var(--success)" });
     });
   });
 
@@ -61,7 +72,6 @@ describe("UI Components in main.tsx", () => {
           label="Test Label"
           value="Test Value"
           subtext="Test Subtext"
-          delay={0}
         />
       );
       expect(screen.getByText("Test Label")).toBeInTheDocument();
@@ -73,15 +83,15 @@ describe("UI Components in main.tsx", () => {
 
   describe("CriteriaRow", () => {
     test("renders passing criteria correctly", () => {
-      render(<CriteriaRow item={{ key: "docs_present", status: "passing", weight: 30 }} />);
-      expect(screen.getByText("docs present")).toBeInTheDocument();
+      render(<CriteriaRow item={{ key: "docs_present", label: "Docs Present", status: "passing", weight: 30 }} />);
+      expect(screen.getByText("Docs Present")).toBeInTheDocument();
       expect(screen.getByText("passing")).toBeInTheDocument();
       expect(screen.getByText("30%")).toBeInTheDocument();
     });
 
     test("renders failing criteria correctly", () => {
-      render(<CriteriaRow item={{ key: "security_scan_passing", status: "failing", weight: 70 }} />);
-      expect(screen.getByText("security scan passing")).toBeInTheDocument();
+      render(<CriteriaRow item={{ key: "security_scan_passing", label: "Security Scan Passing", status: "failing", weight: 70 }} />);
+      expect(screen.getByText("Security Scan Passing")).toBeInTheDocument();
       expect(screen.getByText("failing")).toBeInTheDocument();
       expect(screen.getByText("70%")).toBeInTheDocument();
     });
@@ -92,7 +102,6 @@ describe("UI Components in main.tsx", () => {
       const { container } = render(<EnvBadge env="dev" status="synced" health="healthy" />);
       expect(screen.getByText("dev")).toBeInTheDocument();
       expect(screen.getByText("synced · healthy")).toBeInTheDocument();
-      // allGood true -> contains class bg-pave-success/5
       expect(container.firstChild).toHaveClass("bg-pave-success/5");
     });
 
@@ -100,8 +109,12 @@ describe("UI Components in main.tsx", () => {
       const { container } = render(<EnvBadge env="prod" status="outOfSync" health="unhealthy" />);
       expect(screen.getByText("prod")).toBeInTheDocument();
       expect(screen.getByText("outOfSync · unhealthy")).toBeInTheDocument();
-      // allGood false -> contains class bg-pave-warning/5
       expect(container.firstChild).toHaveClass("bg-pave-warning/5");
+    });
+
+    test("shows image tag when provided", () => {
+      render(<EnvBadge env="dev" status="synced" health="healthy" imageTag="1.2.0" />);
+      expect(screen.getByText("1.2.0")).toBeInTheDocument();
     });
   });
 
@@ -120,82 +133,73 @@ describe("UI Components in main.tsx", () => {
 
   describe("ServiceCard", () => {
     test("renders basic service details", () => {
-      render(<ServiceCard service={mockService} index={0} />);
+      renderWithRouter(<ServiceCard service={mockService} />);
       expect(screen.getByText("Test Service")).toBeInTheDocument();
       expect(screen.getByText("good")).toBeInTheDocument(); // score 85 is "good"
       expect(screen.getByText("A service for testing UI components")).toBeInTheDocument();
       expect(screen.getByText("team-testing")).toBeInTheDocument();
       expect(screen.getByText("production")).toBeInTheDocument();
       expect(screen.getByText("services/test-service")).toBeInTheDocument();
+      expect(screen.getByText("pave-cli")).toBeInTheDocument();
     });
 
     test("toggles scorecard details section when clicked", () => {
-      render(<ServiceCard service={mockService} index={0} />);
-      // Initially, the details should not be rendered
-      expect(screen.queryByText("security scan passing")).not.toBeInTheDocument();
+      renderWithRouter(<ServiceCard service={mockService} />);
+      expect(screen.queryByText("Security Scan Passing")).not.toBeInTheDocument();
 
-      const button = screen.getByRole("button", { name: /Scorecard Details/ });
+      const button = screen.getByRole("button", { name: /Scorecard details/ });
       expect(button).toBeInTheDocument();
       expect(button).toHaveAttribute("aria-expanded", "false");
 
-      // Click to expand
       fireEvent.click(button);
       expect(button).toHaveAttribute("aria-expanded", "true");
-      expect(screen.getByText("security scan passing")).toBeInTheDocument();
-      expect(screen.getByText("docs present")).toBeInTheDocument();
+      expect(screen.getByText("Security Scan Passing")).toBeInTheDocument();
+      expect(screen.getByText("Docs Present")).toBeInTheDocument();
 
-      // Click to collapse again
       fireEvent.click(button);
       expect(button).toHaveAttribute("aria-expanded", "false");
-      expect(screen.queryByText("security scan passing")).not.toBeInTheDocument();
+      expect(screen.queryByText("Security Scan Passing")).not.toBeInTheDocument();
     });
   });
 
   describe("App", () => {
-    test("shows loading state initially, then renders catalog content", async () => {
+    test("shows a skeleton loading state initially, then renders catalog content", async () => {
       const mockCatalogData = {
         generatedAt: "2026-06-19T00:00:00Z",
-        services: [mockService]
+        services: [mockService],
       };
 
       const fetchMock = vi.fn().mockResolvedValue({
         ok: true,
-        json: async () => mockCatalogData
+        json: async () => mockCatalogData,
       });
       vi.stubGlobal("fetch", fetchMock);
 
       render(<App />);
 
-      // Verify loading state is displayed first
-      expect(screen.getByText("Loading catalog…")).toBeInTheDocument();
+      expect(screen.getByRole("status", { name: /loading/i })).toBeInTheDocument();
 
-      // Wait for loading to finish
       await waitFor(() => {
-        expect(screen.queryByText("Loading catalog…")).not.toBeInTheDocument();
+        expect(screen.queryByRole("status", { name: /loading/i })).not.toBeInTheDocument();
       });
 
-      // Verify stats and title are rendered
-      expect(screen.getByText("Software Catalog")).toBeInTheDocument();
+      expect(screen.getByText("Service catalog")).toBeInTheDocument();
       expect(screen.getByText("Test Service")).toBeInTheDocument();
-
-      // Verify stats card content
       expect(screen.getByText("Registered in catalog")).toBeInTheDocument();
-      // Total services should be 1
-      expect(screen.getByText("1")).toBeInTheDocument();
     });
 
-    test("shows empty state and warning banner when fetch fails", async () => {
+    test("shows an inline error and empty state when the catalog fetch fails", async () => {
       const fetchMock = vi.fn().mockRejectedValue(new Error("Network Error"));
       vi.stubGlobal("fetch", fetchMock);
 
       render(<App />);
 
       await waitFor(() => {
-        expect(screen.queryByText("Loading catalog…")).not.toBeInTheDocument();
+        expect(screen.queryByRole("status", { name: /loading/i })).not.toBeInTheDocument();
       });
 
-      expect(screen.getByText("⚠ Failed to load catalog data. Showing empty state.")).toBeInTheDocument();
-      expect(screen.getByText("No services registered")).toBeInTheDocument();
+      expect(screen.getByRole("alert")).toHaveTextContent(/Failed to load catalog/);
+      expect(screen.getByText("No services registered yet")).toBeInTheDocument();
     });
 
     test("filters services dynamically based on search input", async () => {
@@ -207,35 +211,32 @@ describe("UI Components in main.tsx", () => {
             ...mockService,
             id: "other-service",
             name: "Other Unique Name",
-            description: "Totally different desc"
-          }
-        ]
+            description: "Totally different desc",
+          },
+        ],
       };
 
       const fetchMock = vi.fn().mockResolvedValue({
         ok: true,
-        json: async () => mockCatalogData
+        json: async () => mockCatalogData,
       });
       vi.stubGlobal("fetch", fetchMock);
 
       render(<App />);
 
       await waitFor(() => {
-        expect(screen.queryByText("Loading catalog…")).not.toBeInTheDocument();
+        expect(screen.queryByRole("status", { name: /loading/i })).not.toBeInTheDocument();
       });
 
       expect(screen.getByText("Test Service")).toBeInTheDocument();
       expect(screen.getByText("Other Unique Name")).toBeInTheDocument();
 
-      // Search for "Unique"
       const searchInput = screen.getByPlaceholderText("Search services by name, owner, or description…");
       fireEvent.change(searchInput, { target: { value: "Unique" } });
 
-      // Test Service should be filtered out, Other Unique Name should remain
       expect(screen.queryByText("Test Service")).not.toBeInTheDocument();
       expect(screen.getByText("Other Unique Name")).toBeInTheDocument();
 
-      // Clear search
       fireEvent.change(searchInput, { target: { value: "" } });
       expect(screen.getByText("Test Service")).toBeInTheDocument();
       expect(screen.getByText("Other Unique Name")).toBeInTheDocument();

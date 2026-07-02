@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/pavestack/pave/internal/cost"
 	"github.com/pavestack/pave/internal/validate"
 	"github.com/spf13/afero"
 )
@@ -23,8 +24,17 @@ func WalkDir(fsys afero.Fs, root string, fn fs.WalkDirFunc) error {
 	})
 }
 
+// createdViaAnnotation marks catalog-info.yaml entries scaffolded through
+// pave (CLI or the pave-api backend) so the portal can compute a "platform
+// adoption" metric (services created via pave vs. hand-written manually)
+// purely from existing catalog metadata, without a second data store.
+const createdViaAnnotation = "pavestack.io/created-via: pave-cli"
+
 // CreateService scaffolds a new internal API service.
 func CreateService(fsys afero.Fs, repoRoot string, request validate.ServiceRequest) (string, error) {
+	request.ApplyDefaults()
+	tier := cost.ResolveTier(request.Tier)
+
 	templateDir := filepath.Join(repoRoot, "service-template-api")
 	serviceDir := filepath.Join(repoRoot, "services", request.Name+"-api")
 
@@ -32,10 +42,17 @@ func CreateService(fsys afero.Fs, repoRoot string, request validate.ServiceReque
 		return "", fmt.Errorf("copy template: %w", err)
 	}
 
+	annotations := fmt.Sprintf(
+		"pavestack.io/team: %s\n    %s\n    pavestack.io/tier: %s\n    pavestack.io/runtime: %s\n    pavestack.io/exposure: %s",
+		request.Team, createdViaAnnotation, tier, request.Runtime, request.Exposure,
+	)
+
 	replacements := []string{
 		"github.com/pavestack/service-template-api", fmt.Sprintf("github.com/pavestack/services/%s-api", request.Name),
 		"pavestack/service-template-api", fmt.Sprintf("pavestack/%s-api", request.Name),
 		"SERVICE_NAME: service-template-api", fmt.Sprintf("SERVICE_NAME: %s-api", request.Name),
+		"pavestack.io/team: platform", annotations,
+		"lifecycle: production", "lifecycle: experimental",
 		"service-template-api", request.Name + "-api",
 		"team-platform", request.Team,
 	}
@@ -168,8 +185,12 @@ func writeServiceMetadata(fsys afero.Fs, path string, request validate.ServiceRe
 	payload := fmt.Sprintf(`{
   "name": %q,
   "team": %q,
-  "database": %t
+  "database": %t,
+  "runtime": %q,
+  "exposure": %q,
+  "tier": %q,
+  "createdVia": "pave-cli"
 }
-`, request.Name, request.Team, request.Database)
+`, request.Name, request.Team, request.Database, request.Runtime, request.Exposure, request.Tier)
 	return afero.WriteFile(fsys, path, []byte(payload), 0o644)
 }

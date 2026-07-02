@@ -52,4 +52,4 @@ jobs:
         with:
           directory: pavestack-portal
           quiet: true
-          soft_fail: true
+          config_file: .checkov.yaml

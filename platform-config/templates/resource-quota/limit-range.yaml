@@ -1,0 +1,27 @@
+# Complements tenant-quota (namespace-wide ceiling) with a per-container
+# default: any container that omits resources.requests/limits gets these
+# values injected by the API server's LimitRanger admission plugin, and any
+# container that exceeds max is rejected outright. The
+# require-resource-limits Kyverno ClusterPolicy additionally makes omitting
+# sizing a hard validation failure rather than relying on this default alone
+# - see platform-config/policies/kyverno/require-resource-limits.yaml.
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: tenant-limits
+  namespace: REPLACE_NAMESPACE
+spec:
+  limits:
+    - type: Container
+      default:
+        cpu: 500m
+        memory: 512Mi
+      defaultRequest:
+        cpu: 100m
+        memory: 128Mi
+      max:
+        cpu: "2"
+        memory: 2Gi
+      min:
+        cpu: 10m
+        memory: 16Mi

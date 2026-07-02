@@ -1,0 +1,36 @@
+# Drives the automated canary rollback: rollout.yaml's canary strategy runs
+# this analysis during the pause steps, and Argo Rollouts aborts the
+# rollout (scaling the canary ReplicaSet back to zero, keeping 100% traffic
+# on the last-known-good "stable" ReplicaSet) automatically if the success
+# rate breaches successCondition within failureLimit consecutive checks -
+# this IS the platform's post-deploy auto-rollback mechanism (see
+# AGENTS.md "progressive delivery" and .agents/memory/decisions.md).
+#
+# Assumes a Prometheus-compatible TSDB is reachable at the address below
+# with an OTel Collector (or equivalent) exporting `http_server_request_duration_seconds_count`
+# style metrics labeled by `job` and `http_response_status_code` - see
+# internal/telemetry. If your cluster's observability stack uses different
+# metric names/labels, override analysis.prometheusAddress and the query
+# below via Helm values.
+{{- if .Values.rollout.analysisEnabled }}
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: {{ include "service-template-api.fullname" . }}-success-rate
+spec:
+  args:
+    - name: service-name
+  metrics:
+    - name: success-rate
+      interval: 30s
+      count: 3
+      successCondition: result >= 0.95
+      failureLimit: 1
+      provider:
+        prometheus:
+          address: {{ .Values.rollout.prometheusAddress }}
+          query: |
+            sum(rate(http_server_request_duration_seconds_count{job="{{ "{{" }}args.service-name{{ "}}" }}",http_response_status_code!~"5.."}[2m]))
+            /
+            sum(rate(http_server_request_duration_seconds_count{job="{{ "{{" }}args.service-name{{ "}}" }}"}[2m]))
+{{- end }}

@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 
 	"github.com/pavestack/pave/internal/validate"
 )
@@ -34,8 +35,20 @@ func (vc *VersionControl) ValidateTools() error {
 
 // CreatePullRequest checkout a branch, adds files, commits, pushes, and creates a pull request using the gh CLI.
 func (vc *VersionControl) CreatePullRequest(request validate.ServiceRequest, branch string) error {
+	_, err := vc.createPullRequest(request, branch, false)
+	return err
+}
+
+// CreatePullRequestURL is identical to CreatePullRequest but also returns
+// the created PR's URL (via `gh pr create --json url -q .url`), so a caller
+// like the pave-api job runner can surface a clickable link.
+func (vc *VersionControl) CreatePullRequestURL(request validate.ServiceRequest, branch string) (string, error) {
+	return vc.createPullRequest(request, branch, true)
+}
+
+func (vc *VersionControl) createPullRequest(request validate.ServiceRequest, branch string, captureURL bool) (string, error) {
 	if err := vc.ValidateTools(); err != nil {
-		return err
+		return "", err
 	}
 
 	if branch == "" {
@@ -51,7 +64,7 @@ func (vc *VersionControl) CreatePullRequest(request validate.ServiceRequest, bra
 	}
 
 	if err := run("git", "checkout", "-b", branch); err != nil {
-		return fmt.Errorf("create branch: %w", err)
+		return "", fmt.Errorf("create branch: %w", err)
 	}
 
 	paths := []string{
@@ -60,16 +73,16 @@ func (vc *VersionControl) CreatePullRequest(request validate.ServiceRequest, bra
 	}
 
 	if err := run("git", append([]string{"add"}, paths...)...); err != nil {
-		return fmt.Errorf("git add: %w", err)
+		return "", fmt.Errorf("git add: %w", err)
 	}
 
 	commitMsg := fmt.Sprintf("feat(%s): scaffold service via pave CLI", request.Name)
 	if err := run("git", "commit", "-m", commitMsg); err != nil {
-		return fmt.Errorf("git commit: %w", err)
+		return "", fmt.Errorf("git commit: %w", err)
 	}
 
 	if err := run("git", "push", "-u", "origin", branch); err != nil {
-		return fmt.Errorf("git push: %w", err)
+		return "", fmt.Errorf("git push: %w", err)
 	}
 
 	title := fmt.Sprintf("feat(%s): scaffold %s-api", request.Name, request.Name)
@@ -82,5 +95,20 @@ func (vc *VersionControl) CreatePullRequest(request validate.ServiceRequest, bra
 
 Argo CD reconciles after merge.`, request.Name, request.Name, request.Team, request.Database)
 
-	return run("gh", "pr", "create", "--title", title, "--body", body)
+	prArgs := []string{"pr", "create", "--title", title, "--body", body}
+	if !captureURL {
+		if err := run("gh", prArgs...); err != nil {
+			return "", err
+		}
+		return "", nil
+	}
+
+	cmd := exec.Command("gh", append(prArgs, "--json", "url", "-q", ".url")...)
+	cmd.Dir = vc.repoRoot
+	cmd.Stderr = os.Stderr
+	out, err := cmd.Output()
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(string(out)), nil
 }

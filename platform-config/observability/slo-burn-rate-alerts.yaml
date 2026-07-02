@@ -1,0 +1,105 @@
+# Multi-window, multi-burn-rate SLO alerts (the Google SRE workbook
+# pattern: https://sre.google/workbook/alerting-on-slos/) for
+# service-template-api's availability SLO, instead of a single static
+# "error rate > X%" threshold. A fixed threshold either fires on brief
+# blips (alert fatigue) or misses slow error-budget burn (SLO breach with
+# no page) - checking the *rate* of error-budget consumption across both a
+# short and a long window fixes both failure modes at once.
+#
+# SLO: 99.5% success rate over a rolling 30-day window (0.5% = a 30-day
+# error budget of ~3h36m of full downtime equivalent).
+#
+# This is the reference instance for service-template-api; a real
+# multi-tenant rollout would template one PrometheusRule per tenant from
+# this shape (tracked as a platform backlog item - see
+# .agents/memory/decisions.md - deliberately not built speculatively here).
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: service-template-api-slo-burn-rate
+  namespace: monitoring
+  labels:
+    pavestack.io/team: platform
+    release: kube-prometheus-stack # required by kube-prometheus-stack's default ruleSelector
+spec:
+  groups:
+    - name: service-template-api-slo-burn-rate
+      rules:
+        - record: service_template_api:errors_ratio_rate5m
+          expr: |
+            sum(rate(http_server_request_duration_seconds_count{job="service-template-api",http_response_status_code=~"5.."}[5m]))
+            /
+            sum(rate(http_server_request_duration_seconds_count{job="service-template-api"}[5m]))
+        - record: service_template_api:errors_ratio_rate30m
+          expr: |
+            sum(rate(http_server_request_duration_seconds_count{job="service-template-api",http_response_status_code=~"5.."}[30m]))
+            /
+            sum(rate(http_server_request_duration_seconds_count{job="service-template-api"}[30m]))
+        - record: service_template_api:errors_ratio_rate1h
+          expr: |
+            sum(rate(http_server_request_duration_seconds_count{job="service-template-api",http_response_status_code=~"5.."}[1h]))
+            /
+            sum(rate(http_server_request_duration_seconds_count{job="service-template-api"}[1h]))
+        - record: service_template_api:errors_ratio_rate6h
+          expr: |
+            sum(rate(http_server_request_duration_seconds_count{job="service-template-api",http_response_status_code=~"5.."}[6h]))
+            /
+            sum(rate(http_server_request_duration_seconds_count{job="service-template-api"}[6h]))
+        - record: service_template_api:errors_ratio_rate3d
+          expr: |
+            sum(rate(http_server_request_duration_seconds_count{job="service-template-api",http_response_status_code=~"5.."}[3d]))
+            /
+            sum(rate(http_server_request_duration_seconds_count{job="service-template-api"}[3d]))
+
+        # Fast burn: would exhaust the 30-day budget in <1 day if sustained.
+        # 14.4x burn rate sustained for 1h, confirmed by the 5m window so a
+        # single-minute spike doesn't page on its own.
+        - alert: ServiceTemplateAPISLOFastBurn
+          expr: |
+            service_template_api:errors_ratio_rate1h > (14.4 * 0.005)
+            and
+            service_template_api:errors_ratio_rate5m > (14.4 * 0.005)
+          for: 2m
+          labels:
+            severity: page
+            pavestack_slo: availability
+          annotations:
+            summary: "service-template-api is burning its 30d error budget >14x too fast"
+            description: >-
+              Error ratio over the last 1h ({{ $value | humanizePercentage }})
+              and the last 5m both exceed 14.4x the 99.5% SLO's allowed rate.
+              At this rate the 30-day error budget is exhausted in under a
+              day. Check recent deploys first - Argo Rollouts should have
+              already aborted the canary if this was a bad rollout (see
+              service-template-api's AnalysisTemplate).
+
+        # Slow burn: would exhaust the budget in ~5 days if sustained.
+        # Ticket, not page - real but not yet an emergency.
+        - alert: ServiceTemplateAPISLOSlowBurn
+          expr: |
+            service_template_api:errors_ratio_rate6h > (6 * 0.005)
+            and
+            service_template_api:errors_ratio_rate30m > (6 * 0.005)
+          for: 15m
+          labels:
+            severity: ticket
+            pavestack_slo: availability
+          annotations:
+            summary: "service-template-api is burning its 30d error budget ~6x too fast"
+            description: >-
+              Error ratio over the last 6h ({{ $value | humanizePercentage }})
+              and the last 30m both exceed 6x the 99.5% SLO's allowed rate.
+
+        # Budget-exhaustion trend over the full window, low sensitivity,
+        # catches a slow multi-day leak the two rules above are tuned to miss.
+        - alert: ServiceTemplateAPISLOBudgetLowTrend
+          expr: service_template_api:errors_ratio_rate3d > (1 * 0.005)
+          for: 1h
+          labels:
+            severity: ticket
+            pavestack_slo: availability
+          annotations:
+            summary: "service-template-api's 3-day error rate is at or above its raw SLO budget rate"
+            description: >-
+              Sustained at this rate, the 30-day error budget will be fully
+              consumed before the window closes.

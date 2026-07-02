@@ -1,0 +1,38 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: require-resource-limits
+  annotations:
+    policies.kyverno.io/title: Require Resource Requests and Limits
+    policies.kyverno.io/category: Pavestack FinOps & Reliability
+    policies.kyverno.io/severity: medium
+    policies.kyverno.io/description: >-
+      Every container must declare CPU/memory requests and limits so the
+      scheduler can bin-pack correctly and a single runaway service can't
+      starve its namespace neighbors. Defense-in-depth alongside the
+      tenant-limits LimitRange (platform-config/templates/resource-quota),
+      which only supplies a default when a container omits sizing - this
+      policy makes the omission itself a hard failure so a service's real
+      resource footprint is always visible in its own manifests, not only
+      inherited silently from the namespace default.
+spec:
+  validationFailureAction: Enforce
+  background: true
+  rules:
+    - name: require-requests-and-limits
+      match:
+        any:
+          - resources:
+              kinds: ["Pod"]
+      validate:
+        message: "Every container must set resources.requests and resources.limits for both cpu and memory."
+        pattern:
+          spec:
+            containers:
+              - resources:
+                  requests:
+                    cpu: "?*"
+                    memory: "?*"
+                  limits:
+                    cpu: "?*"
+                    memory: "?*"

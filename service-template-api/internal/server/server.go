@@ -4,8 +4,10 @@ import (
 	"encoding/json"
 	"net/http"
 	"sync/atomic"
+	"time"
 
 	"github.com/pavestack/service-template-api/internal/config"
+	"github.com/pavestack/service-template-api/internal/logging"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.uber.org/zap"
 )
@@ -26,7 +28,40 @@ func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /health", s.handleHealth)
 	mux.HandleFunc("GET /ready", s.handleReady)
-	return otelhttp.NewHandler(mux, "http.server")
+	// otelhttp must be the outermost handler: it injects the active span
+	// into the request context before calling the next handler, and
+	// loggingMiddleware needs that span already present (via r.Context())
+	// to attach trace_id/span_id to its log line - all three observability
+	// pillars correlated by one ID, end to end. otelhttp also records the
+	// http.server.request.duration metric (via the global
+	// TracerProvider/MeterProvider installed by internal/telemetry) for
+	// every request.
+	return otelhttp.NewHandler(s.loggingMiddleware(mux), "http.server")
+}
+
+func (s *Server) loggingMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+		rec := &statusRecorder{ResponseWriter: w, status: http.StatusOK}
+		next.ServeHTTP(rec, r)
+
+		logging.FromContext(r.Context(), s.logger).Info("http request",
+			logging.String("method", r.Method),
+			logging.String("path", r.URL.Path),
+			zap.Int("status", rec.status),
+			zap.Duration("duration", time.Since(start)),
+		)
+	})
+}
+
+type statusRecorder struct {
+	http.ResponseWriter
+	status int
+}
+
+func (r *statusRecorder) WriteHeader(status int) {
+	r.status = status
+	r.ResponseWriter.WriteHeader(status)
 }
 
 func (s *Server) handleHealth(w http.ResponseWriter, _ *http.Request) {
