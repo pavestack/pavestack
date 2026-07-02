@@ -6,6 +6,7 @@ package config
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/pavestack/pave/internal/workspace"
 )
@@ -19,6 +20,19 @@ type Config struct {
 	RepoRoot   string
 	DryRun     bool
 	CORSOrigin string
+
+	// DisableAuth runs pave-api with no authentication on mutating
+	// endpoints at all - only ever appropriate for local dev or a CI job
+	// that never leaves localhost. It is never the default; see Load.
+	DisableAuth        bool
+	BaseURL            string // pave-api's own externally reachable origin
+	PortalURL          string // where the browser is sent after login/logout
+	CookieSecure       bool   // derived from BaseURL's scheme
+	SessionSecret      []byte
+	GitHubClientID     string
+	GitHubClientSecret string
+	GitHubOrg          string
+	ApproverTeam       string
 }
 
 func Load() (Config, error) {
@@ -40,6 +54,26 @@ func Load() (Config, error) {
 		dryRun = false
 	}
 
+	disableAuth := os.Getenv("PAVE_API_DISABLE_AUTH") == "true"
+	sessionSecret := os.Getenv("PAVE_API_SESSION_SECRET")
+	clientID := os.Getenv("PAVE_API_GITHUB_CLIENT_ID")
+	clientSecret := os.Getenv("PAVE_API_GITHUB_CLIENT_SECRET")
+
+	// Fail closed: an unconfigured OAuth app must not silently mean "no
+	// auth" - that's exactly the kind of quiet security regression
+	// PAVE_API_DRY_RUN's explicit-opt-in default already guards against
+	// for the GitOps side. PAVE_API_DISABLE_AUTH is the equivalent
+	// explicit opt-out here, for local dev/CI only.
+	if !disableAuth && (sessionSecret == "" || clientID == "" || clientSecret == "") {
+		return Config{}, fmt.Errorf(
+			"GitHub OAuth is not configured - set PAVE_API_SESSION_SECRET, " +
+				"PAVE_API_GITHUB_CLIENT_ID, and PAVE_API_GITHUB_CLIENT_SECRET, " +
+				"or set PAVE_API_DISABLE_AUTH=true to run without authentication " +
+				"(local dev/CI only - never for a network-reachable deployment)")
+	}
+
+	baseURL := env("PAVE_API_BASE_URL", "http://localhost:8787")
+
 	return Config{
 		ServiceName:  env("PAVE_API_SERVICE_NAME", "pave-api"),
 		ListenAddr:   ":" + env("PAVE_API_PORT", "8787"),
@@ -51,6 +85,16 @@ func Load() (Config, error) {
 		// CORS forbids a wildcard origin), so default to the portal's local
 		// dev origin rather than allow-all.
 		CORSOrigin: env("PAVE_API_CORS_ORIGIN", "http://localhost:5173"),
+
+		DisableAuth:        disableAuth,
+		BaseURL:            baseURL,
+		PortalURL:          env("PAVE_API_PORTAL_URL", "http://localhost:5173"),
+		CookieSecure:       strings.HasPrefix(baseURL, "https://"),
+		SessionSecret:      []byte(sessionSecret),
+		GitHubClientID:     clientID,
+		GitHubClientSecret: clientSecret,
+		GitHubOrg:          env("PAVE_API_GITHUB_ORG", "pavestack"),
+		ApproverTeam:       env("PAVE_API_APPROVER_TEAM", "platform"),
 	}, nil
 }
 

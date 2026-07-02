@@ -14,7 +14,13 @@ function describeError(err: unknown): string {
   if (err instanceof ApiUnreachableError) {
     return "Backend unreachable — start pave-api locally (see docs) to submit or view access requests for real.";
   }
-  if (err instanceof ApiResponseError) return `pave-api rejected the request: ${err.message}`;
+  if (err instanceof ApiResponseError) {
+    if (err.status === 401)
+      return "Sign in required — use the account menu above to sign in with GitHub.";
+    if (err.status === 403)
+      return "Your GitHub team doesn't have approval rights for this request.";
+    return `pave-api rejected the request: ${err.message}`;
+  }
   return err instanceof Error ? err.message : "Unknown error";
 }
 

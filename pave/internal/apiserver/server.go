@@ -2,12 +2,12 @@ package apiserver
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 	"os/exec"
 	"path/filepath"
 	"strings"
 
+	"github.com/pavestack/pave/internal/auth"
 	"github.com/pavestack/pave/internal/cost"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.uber.org/zap"
@@ -18,29 +18,40 @@ import (
 type Config struct {
 	RepoRoot   string
 	DryRun     bool
-	CORSOrigin string // "*" or a specific origin
+	CORSOrigin string // a specific origin - never "*", see New()
 	RuntimeDir string // where access-requests.json lives; default <RepoRoot>/.pave-api
+
+	// ApproverTeam is the GitHub team (within the auth Service's configured
+	// org) required to approve/deny access requests when auth is enabled.
+	// Ignored when authSvc passed to New is nil.
+	ApproverTeam string
 }
 
 type Server struct {
 	cfg      Config
 	logger   *zap.Logger
+	auth     *auth.Service
 	jobs     *JobStore
 	requests *AccessRequestStore
 	mux      *http.ServeMux
+
+	mutationLimiter *ipRateLimiter
+	authLimiter     *ipRateLimiter
 }
 
-// New builds a Server. logger may be nil (a no-op logger is used instead),
-// which keeps existing callers like tests that don't care about log output
-// working without change.
-func New(cfg Config, logger *zap.Logger) (*Server, error) {
+// New builds a Server. logger may be nil (a no-op logger is used instead).
+// authSvc may also be nil, which runs pave-api with no authentication at
+// all on the mutating endpoints - only ever appropriate for local dev/CI,
+// wired through PAVE_API_DISABLE_AUTH in internal/config, never silently.
+func New(cfg Config, logger *zap.Logger, authSvc *auth.Service) (*Server, error) {
 	if cfg.RuntimeDir == "" {
 		cfg.RuntimeDir = filepath.Join(cfg.RepoRoot, ".pave-api")
 	}
-	if cfg.CORSOrigin == "" {
-		// Never default to "*": this API is called with credentials
-		// (session cookies) from the portal, and credentialed CORS
-		// requests reject a wildcard origin anyway.
+	if cfg.CORSOrigin == "" || cfg.CORSOrigin == "*" {
+		// Never allow "*": this API is called with credentials (session
+		// cookies) from the portal, and credentialed CORS requests reject
+		// a wildcard origin anyway - so "*" would just break auth, not
+		// relax it.
 		cfg.CORSOrigin = "http://localhost:5173"
 	}
 	if logger == nil {
@@ -55,9 +66,17 @@ func New(cfg Config, logger *zap.Logger) (*Server, error) {
 	s := &Server{
 		cfg:      cfg,
 		logger:   logger,
+		auth:     authSvc,
 		jobs:     NewJobStore(cfg.RepoRoot, cfg.DryRun),
 		requests: requests,
 		mux:      http.NewServeMux(),
+
+		// Mutating endpoints: generous enough for normal portal use, tight
+		// enough to blunt a scripted hammering of create-service/access-request.
+		mutationLimiter: newIPRateLimiter(2, 10),
+		// Login/callback: much tighter, since these are also the surface
+		// an attacker would hit to brute-force or abuse the OAuth dance.
+		authLimiter: newIPRateLimiter(1, 5),
 	}
 	s.routes()
 	return s, nil
@@ -83,9 +102,14 @@ const maxRequestBodyBytes = 1 << 20 // 1 MiB
 // why), then request-ID assignment, then request logging, then panic
 // recovery (closest to the actual handlers so it catches anything that
 // panics in CORS/routing/business logic and still gets logged by the
-// logging middleware above it), then CORS, then the routed mux.
+// logging middleware above it), then security headers, then CORS, then
+// the routed mux. Auth/team checks and rate limiting are applied
+// per-route in routes() instead of globally, since GET endpoints stay
+// public while mutating endpoints don't, and login/callback need a much
+// tighter rate-limit budget than the rest.
 func (s *Server) Handler() http.Handler {
 	h := s.withCORS(s.mux)
+	h = s.securityHeadersMiddleware(h)
 	h = s.recoveryMiddleware(h)
 	h = s.loggingMiddleware(h)
 	h = s.requestIDMiddleware(h)
@@ -93,20 +117,57 @@ func (s *Server) Handler() http.Handler {
 }
 
 func (s *Server) routes() {
+	// Public, read-only: catalog/cost data already lives in
+	// catalog-info.yaml/scorecard.yaml committed to this repo, so gating
+	// reads behind auth wouldn't add real confidentiality - see
+	// AGENTS.md's "Portal data model" section.
 	s.mux.HandleFunc("GET /healthz", s.handleHealthz)
 	s.mux.HandleFunc("GET /api/v1/services", s.handleListServices)
 	s.mux.HandleFunc("GET /api/v1/services/{name}", s.handleGetService)
-	s.mux.HandleFunc("POST /api/v1/services", s.handleCreateService)
 	s.mux.HandleFunc("GET /api/v1/jobs/{id}", s.handleGetJob)
 	s.mux.HandleFunc("GET /api/v1/cost-estimate", s.handleCostEstimate)
 	s.mux.HandleFunc("GET /api/v1/access-requests", s.handleListAccessRequests)
-	s.mux.HandleFunc("POST /api/v1/access-requests", s.handleCreateAccessRequest)
-	s.mux.HandleFunc("PATCH /api/v1/access-requests/{id}", s.handleDecideAccessRequest)
+
+	// Mutating: require a verified session when auth is configured (see
+	// protect/protectApprover), and are always rate-limited regardless.
+	s.mux.Handle("POST /api/v1/services",
+		s.rateLimit(s.mutationLimiter, s.protect(http.HandlerFunc(s.handleCreateService))))
+	s.mux.Handle("POST /api/v1/access-requests",
+		s.rateLimit(s.mutationLimiter, s.protect(http.HandlerFunc(s.handleCreateAccessRequest))))
+	s.mux.Handle("PATCH /api/v1/access-requests/{id}",
+		s.rateLimit(s.mutationLimiter, s.protectApprover(http.HandlerFunc(s.handleDecideAccessRequest))))
+
+	if s.auth != nil {
+		s.mux.Handle("GET /auth/github/login", s.rateLimit(s.authLimiter, http.HandlerFunc(s.auth.HandleLogin)))
+		s.mux.Handle("GET /auth/github/callback", s.rateLimit(s.authLimiter, http.HandlerFunc(s.auth.HandleCallback)))
+		s.mux.HandleFunc("POST /auth/logout", s.auth.HandleLogout)
+		s.mux.Handle("GET /auth/me", s.auth.RequireAuth(http.HandlerFunc(s.auth.HandleMe)))
+	}
+}
+
+// protect requires a verified session when auth is configured; with no
+// auth Service (local dev/CI via PAVE_API_DISABLE_AUTH) it's a no-op,
+// preserving this package's previous unauthenticated behavior exactly.
+func (s *Server) protect(next http.Handler) http.Handler {
+	if s.auth == nil {
+		return next
+	}
+	return s.auth.RequireAuth(next)
+}
+
+// protectApprover requires membership in cfg.ApproverTeam when auth is
+// configured; see protect for the no-auth fallback.
+func (s *Server) protectApprover(next http.Handler) http.Handler {
+	if s.auth == nil {
+		return next
+	}
+	return s.auth.RequireTeam(s.cfg.ApproverTeam)(next)
 }
 
 func (s *Server) withCORS(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", s.cfg.CORSOrigin)
+		w.Header().Set("Access-Control-Allow-Credentials", "true")
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PATCH, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
 		if r.Method == http.MethodOptions {
@@ -234,7 +295,9 @@ func (s *Server) handleDecideAccessRequest(w http.ResponseWriter, r *http.Reques
 	r.Body = http.MaxBytesReader(w, r.Body, maxRequestBodyBytes)
 	id := r.PathValue("id")
 	var body struct {
-		Action   string `json:"action"`
+		Action string `json:"action"`
+		// Approver is only used as a fallback when auth is disabled
+		// (PAVE_API_DISABLE_AUTH=true, local dev/CI only) - see below.
 		Approver string `json:"approver"`
 		Note     string `json:"note"`
 	}
@@ -242,21 +305,24 @@ func (s *Server) handleDecideAccessRequest(w http.ResponseWriter, r *http.Reques
 		writeError(w, http.StatusBadRequest, err)
 		return
 	}
-	if body.Approver == "" {
+
+	// The verified session identity is always the approver of record when
+	// auth is enabled - never the client-supplied field, which would let
+	// any caller self-approve by naming themselves as approver. This is
+	// what protectApprover's RequireTeam check is actually gating.
+	approver := body.Approver
+	if identity, ok := auth.IdentityFromContext(r.Context()); ok {
+		approver = identity.Login
+	}
+	if approver == "" {
 		writeError(w, http.StatusBadRequest, errApproverRequired)
 		return
 	}
 
-	updated, err := s.requests.Decide(id, body.Action, body.Approver, body.Note)
+	updated, err := s.requests.Decide(id, body.Action, approver, body.Note)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, updated)
-}
-
-// Log is a tiny helper so main.go doesn't need its own log import just to
-// announce the listen address.
-func Log(format string, args ...any) {
-	log.Printf(format, args...)
 }

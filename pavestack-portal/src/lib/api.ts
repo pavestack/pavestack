@@ -29,6 +29,10 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   try {
     response = await fetch(`${API_BASE_URL}${path}`, {
       ...init,
+      // pave-api authenticates mutating requests via a session cookie
+      // (see docs/adr/0002-pave-api-authentication.md) - "include" is
+      // required for that cookie to be sent cross-origin to the API's port.
+      credentials: "include",
       headers: {
         "Content-Type": "application/json",
         ...(init?.headers ?? {}),
@@ -51,6 +55,48 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
   if (response.status === 204) return undefined as T;
   return response.json() as Promise<T>;
+}
+
+/* ────────────────────────────── Authentication ──────────────────────────── */
+// pave-api authenticates via GitHub OAuth and a session cookie - see
+// docs/adr/0002-pave-api-authentication.md. It may also be running with
+// PAVE_API_DISABLE_AUTH=true (local dev), in which case /auth/me 404s
+// (auth routes aren't registered) and every mutating call just works
+// unauthenticated - callers here treat that the same as "not signed in"
+// for display purposes, since either way there's no identity to show.
+
+const API_ORIGIN = API_BASE_URL.replace(/\/api\/v1\/?$/, "");
+
+export type CurrentUser = {
+  login: string;
+  teams: string[];
+};
+
+export async function getCurrentUser(): Promise<CurrentUser | null> {
+  try {
+    const response = await fetch(`${API_ORIGIN}/auth/me`, { credentials: "include" });
+    if (!response.ok) return null;
+    const body = (await response.json()) as unknown;
+    if (!body || typeof body !== "object" || typeof (body as CurrentUser).login !== "string") {
+      return null;
+    }
+    return body as CurrentUser;
+  } catch {
+    return null;
+  }
+}
+
+/** Navigates the browser into the GitHub OAuth flow; returns here on success. */
+export function loginUrl(): string {
+  return `${API_ORIGIN}/auth/github/login`;
+}
+
+export async function logout(): Promise<void> {
+  try {
+    await fetch(`${API_ORIGIN}/auth/logout`, { method: "POST", credentials: "include" });
+  } catch {
+    // best-effort - the cookie is httpOnly so there's nothing else to clear client-side
+  }
 }
 
 export async function checkHealth(): Promise<boolean> {

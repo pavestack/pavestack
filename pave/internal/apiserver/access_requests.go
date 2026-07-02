@@ -16,19 +16,30 @@ import (
 // of pave-api doesn't lose pending approvals. It intentionally never
 // auto-approves - Create always lands in "pending", only Decide can move a
 // request to "approved"/"denied", and Decide requires an approver identity.
+//
+// access-requests.json is the rebuildable "current state" view; every
+// Create/Decide is additionally appended to audit, a hash-chained NDJSON
+// log that exists specifically so "who approved what, and was this record
+// altered after the fact" has an answer independent of that mutable file.
 type AccessRequestStore struct {
-	mu   sync.Mutex
-	path string
-	data map[string]AccessRequest
+	mu    sync.Mutex
+	path  string
+	data  map[string]AccessRequest
+	audit *auditLog
 }
 
 func NewAccessRequestStore(runtimeDir string) (*AccessRequestStore, error) {
 	if err := os.MkdirAll(runtimeDir, 0o755); err != nil {
 		return nil, err
 	}
+	audit, err := newAuditLog(runtimeDir)
+	if err != nil {
+		return nil, err
+	}
 	s := &AccessRequestStore{
-		path: filepath.Join(runtimeDir, "access-requests.json"),
-		data: map[string]AccessRequest{},
+		path:  filepath.Join(runtimeDir, "access-requests.json"),
+		data:  map[string]AccessRequest{},
+		audit: audit,
 	}
 	if raw, err := os.ReadFile(s.path); err == nil {
 		_ = json.Unmarshal(raw, &s.data)
@@ -58,7 +69,13 @@ func (s *AccessRequestStore) Create(req AccessRequest) (AccessRequest, error) {
 	req.CreatedAt = time.Now()
 
 	s.data[req.ID] = req
-	return req, s.persistLocked()
+	if err := s.persistLocked(); err != nil {
+		return AccessRequest{}, err
+	}
+	if err := s.audit.append("create", req.ID, req.Requester, req.Reason); err != nil {
+		return AccessRequest{}, fmt.Errorf("persisted but failed to audit-log the create: %w", err)
+	}
+	return req, nil
 }
 
 func (s *AccessRequestStore) Decide(id, action, approver, note string) (AccessRequest, error) {
@@ -80,7 +97,13 @@ func (s *AccessRequestStore) Decide(id, action, approver, note string) (AccessRe
 	req.Approver = approver
 	req.Note = note
 	s.data[id] = req
-	return req, s.persistLocked()
+	if err := s.persistLocked(); err != nil {
+		return AccessRequest{}, err
+	}
+	if err := s.audit.append(action, id, approver, note); err != nil {
+		return AccessRequest{}, fmt.Errorf("persisted but failed to audit-log the %s: %w", action, err)
+	}
+	return req, nil
 }
 
 func (s *AccessRequestStore) persistLocked() error {

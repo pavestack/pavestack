@@ -99,6 +99,19 @@ scaffolded). The portal's Overview stat tile and any future adoption
 dashboard must compute this ratio from that annotation — don't invent a
 second telemetry/analytics pipeline to answer "pave vs. manual".
 
+## `pave-api` — authentication
+
+`pave-api` authenticates portal callers via GitHub OAuth
+(`pave/internal/auth`) and authorizes access-request approval by GitHub
+team membership (`PAVE_API_APPROVER_TEAM`, default `platform`) - not a
+new identity provider or user database. See
+`docs/adr/0002-pave-api-authentication.md` for the full reasoning,
+including why GitHub Actions OIDC verification for CI/automation callers
+was deliberately deferred (no such caller exists yet). `config.Load()`
+fails closed: it refuses to start unless OAuth is fully configured or
+`PAVE_API_DISABLE_AUTH=true` is set explicitly - never add a silent "no
+auth" fallback for an unconfigured OAuth app.
+
 ## `pave-api` — safety defaults
 
 `pave/cmd/pave-api` reuses the CLI's own `scaffold`/`gitops`/`validate`

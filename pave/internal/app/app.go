@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/pavestack/pave/internal/apiserver"
+	"github.com/pavestack/pave/internal/auth"
 	"github.com/pavestack/pave/internal/config"
 	"github.com/pavestack/pave/internal/logging"
 	"github.com/pavestack/pave/internal/telemetry"
@@ -61,11 +62,28 @@ func (a *App) Run(ctx context.Context) error {
 		}
 	}()
 
+	var authSvc *auth.Service
+	if cfg.DisableAuth {
+		a.logger.Warn("PAVE_API_DISABLE_AUTH=true - running with no authentication on mutating endpoints; local dev/CI only")
+	} else {
+		authSvc = auth.NewService(auth.Config{
+			ClientID:      cfg.GitHubClientID,
+			ClientSecret:  cfg.GitHubClientSecret,
+			SessionSecret: cfg.SessionSecret,
+			GitHubOrg:     cfg.GitHubOrg,
+			ApproverTeam:  cfg.ApproverTeam,
+			BaseURL:       cfg.BaseURL,
+			PortalURL:     cfg.PortalURL,
+			CookieSecure:  cfg.CookieSecure,
+		})
+	}
+
 	srv, err := apiserver.New(apiserver.Config{
-		RepoRoot:   cfg.RepoRoot,
-		DryRun:     cfg.DryRun,
-		CORSOrigin: cfg.CORSOrigin,
-	}, a.logger)
+		RepoRoot:     cfg.RepoRoot,
+		DryRun:       cfg.DryRun,
+		CORSOrigin:   cfg.CORSOrigin,
+		ApproverTeam: cfg.ApproverTeam,
+	}, a.logger, authSvc)
 	if err != nil {
 		a.logger.Error("failed to build apiserver", logging.Error(err))
 		return fmt.Errorf("failed to build apiserver: %w", err)

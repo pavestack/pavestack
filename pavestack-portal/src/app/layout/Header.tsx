@@ -1,8 +1,58 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useCatalog } from "../CatalogContext";
 import { useTheme } from "../ThemeContext";
 import { IconMenu, IconMoon, IconSearch, IconSun } from "../icons";
+import { type CurrentUser, getCurrentUser, loginUrl, logout } from "../../lib/api";
+
+function AccountMenu() {
+  const [user, setUser] = useState<CurrentUser | null>(null);
+  const [checked, setChecked] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    getCurrentUser().then((u) => {
+      if (!cancelled) {
+        setUser(u);
+        setChecked(true);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Nothing to show until the first check resolves - avoids a "Sign in"
+  // flash for callers who are actually already authenticated.
+  if (!checked) return null;
+
+  if (!user) {
+    return (
+      <a href={loginUrl()} className="btn btn-secondary !py-1.5 !px-3 text-xs">
+        Sign in with GitHub
+      </a>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-2">
+      <span
+        className="w-6 h-6 rounded-full bg-pave-accent/15 text-pave-accent text-xs font-semibold flex items-center justify-center"
+        aria-hidden="true"
+      >
+        {user.login.slice(0, 1).toUpperCase()}
+      </span>
+      <span className="text-xs text-pave-text-secondary hidden sm:inline">{user.login}</span>
+      <button
+        type="button"
+        className="text-xs text-pave-text-muted hover:text-pave-accent"
+        onClick={() => logout().then(() => setUser(null))}
+      >
+        Sign out
+      </button>
+    </div>
+  );
+}
 
 export function Header({ onToggleSidebar }: { onToggleSidebar: () => void }) {
   const { theme, toggle } = useTheme();
@@ -79,7 +129,8 @@ export function Header({ onToggleSidebar }: { onToggleSidebar: () => void }) {
           )}
         </div>
 
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ml-auto flex items-center gap-3">
+          <AccountMenu />
           <button
             type="button"
             aria-label={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}

@@ -90,7 +90,7 @@ overall_score: 100
 func newTestServer(t *testing.T) (*apiserver.Server, string) {
 	t.Helper()
 	root := setupRepo(t)
-	srv, err := apiserver.New(apiserver.Config{RepoRoot: root, DryRun: true}, zap.NewNop())
+	srv, err := apiserver.New(apiserver.Config{RepoRoot: root, DryRun: true}, zap.NewNop(), nil)
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}

@@ -94,6 +94,8 @@ export function CreateServiceWizard() {
       return "Backend unreachable — start pave-api locally (see docs) to run this for real.";
     }
     if (err instanceof ApiResponseError) {
+      if (err.status === 401)
+        return "Sign in required — use the account menu above to sign in with GitHub.";
       return `pave-api rejected the request: ${err.message}`;
     }
     return err instanceof Error ? err.message : "Unknown error";
