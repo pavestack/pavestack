@@ -110,3 +110,37 @@ templating bugs, like a Helm `{{ }}` vs. Argo-Rollouts-`{{ }}` escaping
 issue in `analysistemplate.yaml`) even without full `terraform validate`.
 Worth trying these fetch paths before concluding "no way to verify this
 without a full toolchain install."
+
+## `eslint-plugin-react-hooks` 6.x/7.x bundles React-Compiler correctness rules, not just the classic two
+
+Installing the latest `eslint-plugin-react-hooks` (7.x at the time)
+alongside its `recommended` config doesn't just get you
+`rules-of-hooks`/`exhaustive-deps` — it also enables
+`set-state-in-effect`, `purity`, `set-state-in-render`, and several other
+rules designed to catch React-Compiler-incompatible patterns. Running
+that against `pavestack-portal`'s existing (uncompiled, no
+`babel-plugin-react-compiler`) codebase immediately flagged several
+legitimate-but-flagged effect patterns as hard errors — fixing them
+properly would have meant non-mechanical effect rewrites, which is scope
+creep for a "add lint tooling" change. Pinned to `5.2.0` (the last
+release before the compiler-oriented rules) instead, documented in
+`AGENTS.md`. Lesson: when adding a linter to an existing codebase,
+`npm install <package>@latest` can silently pull in a much stricter
+ruleset than "the standard rules everyone expects" — check what
+`recommended` actually contains before assuming version bumps are safe by
+default.
+
+## `yaml.v3` unmarshals into `map[string]interface{}}`, not `map[interface{}]interface{}` like `yaml.v2` — no conversion needed before `json.Marshal`
+
+Converting a YAML document to JSON at runtime (`pave/api/openapi.go`,
+embedding and serving `openapi.yaml` as JSON) looked like it would need a
+recursive type-conversion pass first, since `yaml.v2` historically
+produced `map[interface{}]interface{}` for mapping nodes, which
+`encoding/json` can't marshal directly. `yaml.v3` (already a dependency
+here) changed this: unmarshaling into `any`/`interface{}` produces
+`map[string]interface{}` for string-keyed mappings, which
+`json.Marshal` handles natively. Verified directly with a throwaway
+`go run` before writing the "obviously needed" conversion function -
+saved writing and testing ~20 lines of unnecessary code. Worth checking
+the actual runtime type with a two-line reproduction before assuming a
+well-known library gotcha from an older major version still applies.

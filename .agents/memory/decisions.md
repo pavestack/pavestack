@@ -261,3 +261,90 @@ deleted) but are no longer referenced from README, landing, or portal.
   `service-template-api`) is a real follow-up — not built speculatively
   here per the brief's own "document, don't over-engineer" instruction for
   the AI-incident-triage path.
+
+## Part 4 — pave-api platform-maturity pass (auth, observability, tests, OpenAPI)
+
+A follow-up audit (industry-practice gap analysis) found `pave-api` — the
+platform's actual control-plane API — hadn't kept pace with
+`service-template-api`'s standards from Parts 1-3: no authentication on
+any endpoint (including access-request approval, which trusted a
+client-supplied `approver` string with no identity check — a
+self-approval hole), `log.Printf` instead of structured/correlated
+logging, no metrics/tracing, CI never ran `go vet`/`gofmt`/the portal's
+Vitest suite despite `make lint`/`make fmt`/`make test` already existing,
+no OpenAPI contract, no Dockerfile. Addressed in five sequenced commits:
+
+**CI wiring first** (cheapest, unblocks everything else's feedback loop):
+wired `go vet`/`gofmt -l` into `pave-cli.yml`/`service-template-api.yml`
+(previously only `go test` ran), added ESLint+Prettier to the portal
+(pinned `eslint-plugin-react-hooks` to the 5.x `rules-of-hooks`+
+`exhaustive-deps` ruleset rather than 6.x/7.x's React-Compiler-oriented
+rules, which would have forced non-mechanical effect rewrites unrelated
+to adding lint tooling — revisit if the portal ever adopts React
+Compiler), wired the portal's Vitest suite into CI for the first time.
+
+**Observability/resilience parity**: added `pave/internal/logging`
+(zap) and `pave/internal/telemetry` (OTel), copied from
+`service-template-api`'s packages rather than extracted into a shared
+module — `pave` and `service-template-api` are separate `go.work`
+modules with no existing shared module, and creating one now for two
+call sites was judged bigger surgery than the problem warranted; revisit
+if a third Go service needs the same pattern. Added
+`pave/internal/app.App.Run` (graceful shutdown on SIGINT/SIGTERM,
+mirroring `service-template-api/internal/app`), panic-recovery and
+request-ID middleware (previously a single panicking handler would have
+crashed the whole process), `exec.CommandContext` timeouts on the
+`git`/`gh` shell-outs, and bounded `JobStore` eviction (was an unbounded
+in-memory map).
+
+**Authentication — the core of this pass**: GitHub OAuth 2.0
+Authorization Code flow (`pave/internal/auth`) for the portal, GitHub
+org/team membership for authorization, a `pave-api`-issued HMAC-signed
+session cookie (deliberately not a JWT — `pave-api` is both sole issuer
+and sole verifier, so JWT's algorithm-negotiation surface buys nothing
+and only adds attack surface). Full reasoning, alternatives considered
+(service mesh mTLS, full SSO/IdP, static API key, GitHub Actions OIDC for
+CI callers), and the resulting authorization boundary are in
+`docs/adr/0002-pave-api-authentication.md` — GitHub Actions OIDC
+verification was deliberately deferred (no workflow calls `pave-api`
+today; building JWKS verification for a caller that doesn't exist yet
+would have been speculative). `config.Load()` fails closed: refuses to
+start unless OAuth is fully configured or `PAVE_API_DISABLE_AUTH=true` is
+explicit, mirroring `PAVE_API_DRY_RUN`'s existing safety-default
+philosophy. Also added in the same pass since they're natural companions
+to "an API that's actually reachable now has sessions/cookies in play":
+per-route rate limiting (`golang.org/x/time/rate`, tighter budget on
+`/auth/github/login`+`callback` than general mutating endpoints),
+security response headers (CSP/X-Frame-Options/HSTS), a 1 MiB request-body
+cap, and a hash-chained append-only audit log
+(`access-requests.audit.ndjson`) alongside the existing mutable
+`access-requests.json` — `newAuditLog` replays and re-verifies the whole
+chain on every `pave-api` start, refusing to start if it's been altered
+out-of-band, since a tamper-evidence feature that silently continues past
+a broken chain would defeat its own purpose.
+
+**Test coverage**: added coverage tooling to all three CI-running
+workflows (Go `-coverprofile` + a floor check via `go tool cover -func`;
+`@vitest/coverage-v8` with a threshold config) and tests for the four
+previously-untested portal route components with real user interaction
+(`ServiceDetail`, `Scorecards`, `RequestAccess`, `CreateServiceWizard`) —
+portal statement coverage went from ~48% to ~76%. Left `Docs.tsx`/
+`Observability.tsx`/`Sparkline.tsx`/`StepTracker.tsx`/`DataTable.tsx`
+lightly covered rather than writing shallow tests purely to move a
+number — they're static/simulated-data display, or (`DataTable`) a
+virtualized list that's awkward to exercise meaningfully in jsdom.
+
+**OpenAPI + Dockerfile**: `pave/api/openapi.yaml` (hand-authored, all 13
+endpoints) is embedded and served live at `GET /api/v1/openapi.json`
+(`pave/api/openapi.go`) rather than left as a doc-only file, so it can't
+drift from what's actually running. `pave/API_VERSIONING.md` documents a
+lighter-weight deprecation lifecycle than the golden-path template's,
+since `pave-api` currently has exactly one caller (the portal, in this
+same monorepo). `pave/Dockerfile` mirrors `service-template-api`'s
+multi-stage/distroless/nonroot pattern; CI now builds and Trivy-scans the
+image, but deliberately does not push to a registry or open a GitOps
+promotion PR — `pave-api` isn't deployed anywhere (no
+`platform-config/tenants/pave-api`), so there's nothing to promote into
+yet. Giving it a live namespace was explicitly treated as a separate,
+un-bundled decision — see the new "Non-goals for this round specifically"
+entries in `INTENT_SPEC.md`.

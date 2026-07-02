@@ -62,6 +62,13 @@ reintroduces the manual bottleneck self-service is meant to remove.
 - **The landing page and the portal are not the same design register.**
   See AGENTS.md "design system" — don't collapse the expressive/functional
   split for consistency's sake; the split is the point.
+- **Not a system that handles end-user/customer personal data.** Pavestack
+  operates on infrastructure and service metadata (service names, team
+  slugs, GitHub logins, access-request reasons) — it is not, and should
+  not become, a data processor for a downstream product's end-user PII.
+  If a scaffolded service itself handles PII, that's the service owner's
+  compliance responsibility, not the platform's. This is stated explicitly
+  rather than left implicit, per the 2026 platform-maturity audit.
 
 ## Non-goals for this round specifically
 
@@ -78,3 +85,19 @@ the reasoning behind each):
 - Rasterized favicon (`.ico`) generation — the SVG favicon is used
   directly; broad enough modern-browser support that a raster fallback
   wasn't worth the build-step complexity here.
+- GitHub Actions OIDC token verification as a second `pave-api`
+  authentication path for CI/automation callers (see
+  `docs/adr/0002-pave-api-authentication.md`) — no workflow calls
+  `pave-api` today, so this was deliberately deferred rather than built
+  speculatively; add it following the same GitHub-OIDC pattern already
+  used for cosign signing when a real caller shows up.
+- Browser/e2e testing (Playwright or similar) for `pavestack-portal` —
+  unit/component test coverage was raised significantly in the 2026
+  maturity pass (`pavestack-portal/src/app/routes/*.test.tsx`), but no
+  end-to-end suite exists yet.
+- Giving `pave-api` a live deployment (`platform-config/tenants/pave-api`,
+  ingress, TLS) — it has a Dockerfile and a CI build+scan step now, but
+  isn't running anywhere. Deploying it is a separate decision (real
+  OAuth App callback URL, real `PAVE_API_BASE_URL`/`PAVE_API_PORTAL_URL`,
+  persistent storage for the access-request store) that shouldn't be
+  bundled silently into a maturity pass.
