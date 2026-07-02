@@ -13,6 +13,14 @@ import (
 	"github.com/spf13/afero"
 )
 
+// maxTrackedJobs bounds JobStore's in-memory map so a long-running instance
+// doesn't grow it unboundedly - jobs are only useful for a client to poll
+// shortly after submission, not as permanent history (that's what the PR
+// created by open_pr, and access-requests.json for approvals, are for).
+// When a Submit would exceed this, the oldest completed/failed jobs are
+// evicted first; still-running jobs are never evicted.
+const maxTrackedJobs = 500
+
 // JobStore runs create-service requests asynchronously through the exact
 // same scaffold/gitops/validate calls pave create-service makes, and lets
 // the portal poll for progress instead of blocking an HTTP request for the
@@ -20,6 +28,7 @@ import (
 type JobStore struct {
 	mu       sync.RWMutex
 	jobs     map[string]*Job
+	order    []string // insertion order, oldest first, for eviction
 	repoRoot string
 	dryRun   bool
 }
@@ -71,6 +80,8 @@ func (s *JobStore) Submit(req CreateServiceRequest) (*Job, error) {
 
 	s.mu.Lock()
 	s.jobs[job.JobID] = job
+	s.order = append(s.order, job.JobID)
+	s.evictOldestCompletedLocked()
 	s.mu.Unlock()
 
 	go s.run(job.JobID, sr)
@@ -83,6 +94,30 @@ func (s *JobStore) Get(id string) (*Job, bool) {
 	defer s.mu.RUnlock()
 	j, ok := s.jobs[id]
 	return j, ok
+}
+
+// evictOldestCompletedLocked drops the oldest completed/failed jobs (never
+// ones still queued/running) once the store exceeds maxTrackedJobs. Caller
+// must hold s.mu for writing.
+func (s *JobStore) evictOldestCompletedLocked() {
+	if len(s.jobs) <= maxTrackedJobs {
+		return
+	}
+	toEvict := len(s.jobs) - maxTrackedJobs
+	kept := s.order[:0]
+	for _, id := range s.order {
+		job, ok := s.jobs[id]
+		if !ok {
+			continue
+		}
+		if toEvict > 0 && (job.Status == JobCompleted || job.Status == JobFailed) {
+			delete(s.jobs, id)
+			toEvict--
+			continue
+		}
+		kept = append(kept, id)
+	}
+	s.order = kept
 }
 
 func (s *JobStore) run(jobID string, sr validate.ServiceRequest) {

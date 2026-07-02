@@ -9,6 +9,8 @@ import (
 	"strings"
 
 	"github.com/pavestack/pave/internal/cost"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.uber.org/zap"
 )
 
 // Config controls how the server resolves state and whether it actually
@@ -22,17 +24,27 @@ type Config struct {
 
 type Server struct {
 	cfg      Config
+	logger   *zap.Logger
 	jobs     *JobStore
 	requests *AccessRequestStore
 	mux      *http.ServeMux
 }
 
-func New(cfg Config) (*Server, error) {
+// New builds a Server. logger may be nil (a no-op logger is used instead),
+// which keeps existing callers like tests that don't care about log output
+// working without change.
+func New(cfg Config, logger *zap.Logger) (*Server, error) {
 	if cfg.RuntimeDir == "" {
 		cfg.RuntimeDir = filepath.Join(cfg.RepoRoot, ".pave-api")
 	}
 	if cfg.CORSOrigin == "" {
-		cfg.CORSOrigin = "*"
+		// Never default to "*": this API is called with credentials
+		// (session cookies) from the portal, and credentialed CORS
+		// requests reject a wildcard origin anyway.
+		cfg.CORSOrigin = "http://localhost:5173"
+	}
+	if logger == nil {
+		logger = zap.NewNop()
 	}
 
 	requests, err := NewAccessRequestStore(cfg.RuntimeDir)
@@ -42,6 +54,7 @@ func New(cfg Config) (*Server, error) {
 
 	s := &Server{
 		cfg:      cfg,
+		logger:   logger,
 		jobs:     NewJobStore(cfg.RepoRoot, cfg.DryRun),
 		requests: requests,
 		mux:      http.NewServeMux(),
@@ -59,8 +72,24 @@ func GitOpsToolsAvailable() bool {
 	return gitErr == nil && ghErr == nil
 }
 
+// maxRequestBodyBytes bounds JSON request bodies so a large/malicious body
+// can't exhaust memory before json.Decode ever gets a chance to reject it.
+const maxRequestBodyBytes = 1 << 20 // 1 MiB
+
+// Handler wraps the routed mux with the middleware chain, outermost first:
+// otelhttp must be outermost so it injects the active span into the
+// request context before requestID/logging run (mirrors
+// service-template-api/internal/server - see its Handler() comment for
+// why), then request-ID assignment, then request logging, then panic
+// recovery (closest to the actual handlers so it catches anything that
+// panics in CORS/routing/business logic and still gets logged by the
+// logging middleware above it), then CORS, then the routed mux.
 func (s *Server) Handler() http.Handler {
-	return s.withCORS(s.mux)
+	h := s.withCORS(s.mux)
+	h = s.recoveryMiddleware(h)
+	h = s.loggingMiddleware(h)
+	h = s.requestIDMiddleware(h)
+	return otelhttp.NewHandler(h, "http.server")
 }
 
 func (s *Server) routes() {
@@ -122,6 +151,7 @@ func (s *Server) handleGetService(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleCreateService(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, maxRequestBodyBytes)
 	var req CreateServiceRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeError(w, http.StatusBadRequest, err)
@@ -181,6 +211,7 @@ func (s *Server) handleListAccessRequests(w http.ResponseWriter, r *http.Request
 }
 
 func (s *Server) handleCreateAccessRequest(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, maxRequestBodyBytes)
 	var req AccessRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeError(w, http.StatusBadRequest, err)
@@ -200,6 +231,7 @@ func (s *Server) handleCreateAccessRequest(w http.ResponseWriter, r *http.Reques
 }
 
 func (s *Server) handleDecideAccessRequest(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, maxRequestBodyBytes)
 	id := r.PathValue("id")
 	var body struct {
 		Action   string `json:"action"`

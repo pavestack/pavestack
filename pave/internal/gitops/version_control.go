@@ -1,14 +1,22 @@
 package gitops
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/pavestack/pave/internal/validate"
 )
+
+// gitCmdTimeout bounds each individual git/gh invocation so a hung process
+// (e.g. gh waiting on an interactive prompt, or a stalled network call)
+// can't wedge a create-service job - or, when driven by pave-api, an HTTP
+// request goroutine - indefinitely.
+const gitCmdTimeout = 30 * time.Second
 
 // VersionControl encapsulates git and GitHub CLI operations.
 type VersionControl struct {
@@ -56,7 +64,9 @@ func (vc *VersionControl) createPullRequest(request validate.ServiceRequest, bra
 	}
 
 	run := func(name string, args ...string) error {
-		cmd := exec.Command(name, args...)
+		ctx, cancel := context.WithTimeout(context.Background(), gitCmdTimeout)
+		defer cancel()
+		cmd := exec.CommandContext(ctx, name, args...)
 		cmd.Dir = vc.repoRoot
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
@@ -103,7 +113,9 @@ Argo CD reconciles after merge.`, request.Name, request.Name, request.Team, requ
 		return "", nil
 	}
 
-	cmd := exec.Command("gh", append(prArgs, "--json", "url", "-q", ".url")...)
+	ctx, cancel := context.WithTimeout(context.Background(), gitCmdTimeout)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, "gh", append(prArgs, "--json", "url", "-q", ".url")...)
 	cmd.Dir = vc.repoRoot
 	cmd.Stderr = os.Stderr
 	out, err := cmd.Output()

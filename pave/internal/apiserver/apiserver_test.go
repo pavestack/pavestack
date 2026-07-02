@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/pavestack/pave/internal/apiserver"
+	"go.uber.org/zap"
 )
 
 // setupRepo builds a minimal on-disk repo (real files, not afero) since
@@ -89,7 +90,7 @@ overall_score: 100
 func newTestServer(t *testing.T) (*apiserver.Server, string) {
 	t.Helper()
 	root := setupRepo(t)
-	srv, err := apiserver.New(apiserver.Config{RepoRoot: root, DryRun: true})
+	srv, err := apiserver.New(apiserver.Config{RepoRoot: root, DryRun: true}, zap.NewNop())
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}
