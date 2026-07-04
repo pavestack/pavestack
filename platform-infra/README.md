@@ -177,6 +177,51 @@ Production follows the same commands with `ENV=prod`.
 - GitHub environment protection should require approval for `prod`.
 - GitHub Actions uses AWS OIDC; no long-lived AWS keys are required.
 
+## Azure (multi-cloud)
+
+Pavestack is moving to multi-cloud, with Azure as the next target. The Azure path
+mirrors the AWS one resource-for-resource:
+
+| AWS | Azure |
+|-----|-------|
+| `modules/vpc` (VPC, subnets, NAT) | `modules/azure/network` (VNet, subnet, NAT gateway) |
+| `modules/eks` (EKS + KMS + OIDC) | `modules/azure/aks` (AKS, workload identity, Log Analytics) |
+| `modules/ecr` | `modules/azure/acr` (Premium ACR) |
+| `modules/github-oidc` (IAM role) | `modules/azure/github-oidc` (user-assigned identity + federated credential) |
+| `modules/argocd-bootstrap` | reused as-is (cloud-agnostic Helm) |
+| `bootstrap/remote-state` (S3) | `bootstrap/azure-remote-state` (Storage Account + container) |
+| `envs/{dev,prod}` | `envs/azure/{dev,prod}` |
+
+AKS relies on Azure's default platform-managed etcd encryption at rest (the parallel
+to the EKS module's explicit KMS key); customer-managed Key Vault encryption can be
+layered on later.
+
+### Deployment is disabled by default
+
+Both clouds use the same "credentials-unset" gate, so **nothing deploys until the
+corresponding variables are set**:
+
+- AWS deploy jobs run only when `vars.AWS_ROLE_ARN` is set.
+- Azure deploy jobs (`platform-infra-azure.yml` and the `build-push-acr` job) run only
+  when `vars.AZURE_CLIENT_ID` is set.
+
+With neither variable configured, only `fmt`/`validate`/scan run and the pipeline is
+green. To enable Azure applies later, create GitHub repository/environment variables:
+
+| Variable | Purpose |
+|----------|---------|
+| `AZURE_CLIENT_ID` | Federated identity client ID (also the deploy gate) |
+| `AZURE_TENANT_ID` | Entra ID tenant ID |
+| `AZURE_SUBSCRIPTION_ID` | Target subscription |
+| `TF_AZURE_BACKEND_RESOURCE_GROUP` | Resource group holding the state storage account |
+| `TF_AZURE_BACKEND_STORAGE_ACCOUNT` | State storage account name |
+| `TF_AZURE_BACKEND_CONTAINER` | State blob container name |
+| `ACR_REGISTRY` | Container registry short name for image pushes |
+
+GitHub Actions authenticates to Azure with OIDC federated credentials (no client
+secrets). Bootstrap the state backend once with `bootstrap/azure-remote-state`, then
+`terraform -chdir=envs/azure/dev init -backend-config=backend.hcl`.
+
 ## Downstream Outputs
 
 Downstream repos should consume stable outputs instead of inferring resource names:

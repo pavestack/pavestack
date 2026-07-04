@@ -1,0 +1,4 @@
+resource_group_name  = "pavestack-tfstate"
+storage_account_name = "pavestacktfstate"
+container_name       = "tfstate"
+key                  = "platform-infra/azure/dev/terraform.tfstate"

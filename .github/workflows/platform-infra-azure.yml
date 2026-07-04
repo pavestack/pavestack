@@ -1,0 +1,182 @@
+name: platform-infra-azure
+
+on:
+  pull_request:
+    paths:
+      - "platform-infra/**"
+      - ".github/workflows/platform-infra-azure.yml"
+  push:
+    branches: ["main"]
+    paths:
+      - "platform-infra/**"
+      - ".github/workflows/platform-infra-azure.yml"
+  # checkov:skip=CKV_GHA_7: Allow manual env selection
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Environment to apply
+        required: true
+        type: choice
+        options: ["dev", "prod"]
+
+permissions:
+  contents: read
+  id-token: write
+  pull-requests: write
+
+jobs:
+  fmt-validate-scan:
+    name: fmt validate scan
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        environment: ["dev", "prod"]
+    defaults:
+      run:
+        working-directory: platform-infra
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+
+      - uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
+        with:
+          terraform_version: 1.9.0
+
+      - name: Terraform fmt
+        run: terraform fmt -recursive -check
+
+      - name: Setup TFLint
+        uses: terraform-linters/setup-tflint@6e1e0642c0289bd619021bf6b34e3c08ed1e005a # v6
+
+      - name: TFLint init
+        run: tflint --init
+
+      - name: TFLint scan
+        run: tflint --recursive
+
+      - name: Terraform init without backend
+        run: terraform -chdir=envs/azure/${{ matrix.environment }} init -backend=false
+
+      - name: Terraform validate
+        run: terraform -chdir=envs/azure/${{ matrix.environment }} validate
+
+      - name: Checkov policy scan
+        uses: bridgecrewio/checkov-action@a7683e7b72a04503521247973281ec8142e1ac1f # v12
+        with:
+          directory: platform-infra
+          quiet: true
+          config_file: .checkov.yaml
+
+      - name: Trivy config scan
+        uses: aquasecurity/trivy-action@df678dbccf677bc6937338d569ba0da18964a8cc # master
+        with:
+          scan-type: config
+          scan-ref: platform-infra
+          severity: CRITICAL,HIGH
+          exit-code: 1
+          trivyignores: .trivyignore
+
+  plan:
+    name: plan
+    needs: fmt-validate-scan
+    if: github.event_name == 'pull_request' && vars.AZURE_CLIENT_ID != ''
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        environment: ["dev", "prod"]
+    environment: ${{ matrix.environment }}
+    defaults:
+      run:
+        working-directory: platform-infra
+    env:
+      ARM_USE_OIDC: "true"
+      ARM_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+      ARM_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+      ARM_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+
+      - uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
+        with:
+          terraform_version: 1.9.0
+
+      - uses: azure/login@a457da9ea143d694b1b9c7c869ebb04ebe844ef5 # v2.3.0
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Write backend config
+        working-directory: platform-infra/envs/azure/${{ matrix.environment }}
+        run: |
+          cat > backend.hcl <<EOF
+          resource_group_name  = "${{ vars.TF_AZURE_BACKEND_RESOURCE_GROUP }}"
+          storage_account_name = "${{ vars.TF_AZURE_BACKEND_STORAGE_ACCOUNT }}"
+          container_name       = "${{ vars.TF_AZURE_BACKEND_CONTAINER }}"
+          key                  = "platform-infra/azure/${{ matrix.environment }}/terraform.tfstate"
+          EOF
+
+      - name: Terraform init
+        run: terraform -chdir=envs/azure/${{ matrix.environment }} init -backend-config=backend.hcl
+
+      - name: Terraform plan
+        run: terraform -chdir=envs/azure/${{ matrix.environment }} plan -no-color -out=tfplan -var="subscription_id=${{ vars.AZURE_SUBSCRIPTION_ID }}"
+
+  apply:
+    name: apply
+    needs: fmt-validate-scan
+    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && vars.AZURE_CLIENT_ID != ''
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        environment: ["dev", "prod"]
+    environment: ${{ github.event_name == 'workflow_dispatch' && inputs.environment || matrix.environment }}
+    env:
+      ARM_USE_OIDC: "true"
+      ARM_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+      ARM_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+      ARM_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+    steps:
+      - name: Skip non-selected environment
+        if: github.event_name == 'workflow_dispatch' && matrix.environment != inputs.environment
+        run: echo "Skipping ${{ matrix.environment }}"
+
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        if: github.event_name != 'workflow_dispatch' || matrix.environment == inputs.environment
+
+      - uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
+        if: github.event_name != 'workflow_dispatch' || matrix.environment == inputs.environment
+        with:
+          terraform_version: 1.9.0
+
+      - uses: azure/login@a457da9ea143d694b1b9c7c869ebb04ebe844ef5 # v2.3.0
+        if: github.event_name != 'workflow_dispatch' || matrix.environment == inputs.environment
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Write backend config
+        if: github.event_name != 'workflow_dispatch' || matrix.environment == inputs.environment
+        working-directory: platform-infra/envs/azure/${{ matrix.environment }}
+        run: |
+          cat > backend.hcl <<EOF
+          resource_group_name  = "${{ vars.TF_AZURE_BACKEND_RESOURCE_GROUP }}"
+          storage_account_name = "${{ vars.TF_AZURE_BACKEND_STORAGE_ACCOUNT }}"
+          container_name       = "${{ vars.TF_AZURE_BACKEND_CONTAINER }}"
+          key                  = "platform-infra/azure/${{ matrix.environment }}/terraform.tfstate"
+          EOF
+
+      - name: Terraform init
+        if: github.event_name != 'workflow_dispatch' || matrix.environment == inputs.environment
+        run: terraform -chdir=platform-infra/envs/azure/${{ matrix.environment }} init -backend-config=backend.hcl
+
+      - name: Terraform plan
+        if: github.event_name != 'workflow_dispatch' || matrix.environment == inputs.environment
+        run: terraform -chdir=platform-infra/envs/azure/${{ matrix.environment }} plan -out=tfplan -var="subscription_id=${{ vars.AZURE_SUBSCRIPTION_ID }}"
+
+      - name: Terraform apply
+        if: github.event_name != 'workflow_dispatch' || matrix.environment == inputs.environment
+        run: terraform -chdir=platform-infra/envs/azure/${{ matrix.environment }} apply -auto-approve tfplan
