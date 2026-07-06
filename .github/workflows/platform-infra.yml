@@ -80,7 +80,7 @@ jobs:
   plan:
     name: plan
     needs: fmt-validate-scan
-    if: github.event_name == 'pull_request' && vars.AWS_ROLE_ARN != ''
+    if: github.event_name == 'pull_request' && vars.AWS_ROLE_ARN != '' && vars.ENABLE_AWS_DEPLOY == 'true'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -127,7 +127,7 @@ jobs:
   apply:
     name: apply
     needs: fmt-validate-scan
-    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && vars.AWS_ROLE_ARN != ''
+    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && vars.AWS_ROLE_ARN != '' && vars.ENABLE_AWS_DEPLOY == 'true'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false

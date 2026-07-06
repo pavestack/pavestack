@@ -198,15 +198,19 @@ layered on later.
 
 ### Deployment is disabled by default
 
-Both clouds use the same "credentials-unset" gate, so **nothing deploys until the
-corresponding variables are set**:
+**Nothing deploys until the corresponding variables are set:**
 
-- AWS deploy jobs run only when `vars.AWS_ROLE_ARN` is set.
+- AWS deploy jobs run only when `vars.AWS_ROLE_ARN` is set **and**
+  `vars.ENABLE_AWS_DEPLOY == 'true'`. AWS is disabled for now, so leaving
+  `ENABLE_AWS_DEPLOY` unset keeps AWS `plan`/`apply` and the ECR `build-push-pr` job
+  skipped even if a role ARN is present.
 - Azure deploy jobs (`platform-infra-azure.yml` and the `build-push-acr` job) run only
-  when `vars.AZURE_CLIENT_ID` is set.
+  when `vars.AZURE_CLIENT_ID` is set (credentials-unset gate).
 
-With neither variable configured, only `fmt`/`validate`/scan run and the pipeline is
-green. To enable Azure applies later, create GitHub repository/environment variables:
+With none of these configured, only `fmt`/`validate`/scan run and the pipeline is
+green. To re-enable AWS later, set `ENABLE_AWS_DEPLOY=true` (with a valid
+`AWS_ROLE_ARN`). To enable Azure applies later, create GitHub repository/environment
+variables:
 
 | Variable | Purpose |
 |----------|---------|
