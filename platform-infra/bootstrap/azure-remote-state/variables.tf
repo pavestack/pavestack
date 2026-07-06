@@ -4,12 +4,6 @@ variable "subscription_id" {
   default     = ""
 }
 
-variable "name_prefix" {
-  description = "Resource name prefix."
-  type        = string
-  default     = "pavestack"
-}
-
 variable "location" {
   description = "Azure region for the state storage account."
   type        = string

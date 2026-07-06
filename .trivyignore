@@ -53,9 +53,15 @@ CKV2_AZURE_31
 CKV2_AZURE_32
 CKV2_AZURE_33
 CKV2_AZURE_38
+CKV2_AZURE_21
 CKV2_AZURE_40
 CKV2_AZURE_41
 CKV2_AZURE_47
-# Trivy-native Azure misconfiguration IDs (HIGH) for the same intentional gaps
-AVD-AZU-0040
-AVD-AZU-0007
+# Trivy-native Azure misconfiguration IDs for the same intentional gaps
+# AVD-AZU-0012: storage account default network action (public backend access required)
+# AVD-AZU-0041: AKS API server IP allowlist (no fixed egress CIDRs in the demo platform)
+AVD-AZU-0012
+AVD-AZU-0041
+# Pre-existing EKS public-endpoint findings (intentional for the CLI-first demo, see README)
+AVD-AWS-0040
+AVD-AWS-0041
