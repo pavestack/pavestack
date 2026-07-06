@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.1](https://github.com/pavestack/pavestack/compare/v1.0.0...v1.0.1) (2026-07-04)
+
+
+### Bug Fixes
+
+* **security:** resolve Checkov security scan violations ([d757c3d](https://github.com/pavestack/pavestack/commit/d757c3de9417747948dd4bbeb449828f809fbc3d))
+
 ## 1.0.0 (2026-06-18)
 
 
