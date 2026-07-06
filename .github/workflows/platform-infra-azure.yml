@@ -1,15 +1,15 @@
-name: platform-infra
+name: platform-infra-azure
 
 on:
   pull_request:
     paths:
       - "platform-infra/**"
-      - ".github/workflows/platform-infra.yml"
+      - ".github/workflows/platform-infra-azure.yml"
   push:
     branches: ["main"]
     paths:
       - "platform-infra/**"
-      - ".github/workflows/platform-infra.yml"
+      - ".github/workflows/platform-infra-azure.yml"
   # checkov:skip=CKV_GHA_7: Allow manual env selection
   workflow_dispatch:
     inputs:
@@ -54,12 +54,11 @@ jobs:
       - name: TFLint scan
         run: tflint --recursive
 
-
       - name: Terraform init without backend
-        run: terraform -chdir=envs/${{ matrix.environment }} init -backend=false
+        run: terraform -chdir=envs/azure/${{ matrix.environment }} init -backend=false
 
       - name: Terraform validate
-        run: terraform -chdir=envs/${{ matrix.environment }} validate
+        run: terraform -chdir=envs/azure/${{ matrix.environment }} validate
 
       - name: Checkov policy scan
         uses: bridgecrewio/checkov-action@a7683e7b72a04503521247973281ec8142e1ac1f # v12
@@ -80,7 +79,7 @@ jobs:
   plan:
     name: plan
     needs: fmt-validate-scan
-    if: github.event_name == 'pull_request' && vars.AWS_ROLE_ARN != '' && vars.ENABLE_AWS_DEPLOY == 'true'
+    if: github.event_name == 'pull_request' && vars.AZURE_CLIENT_ID != ''
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -90,6 +89,11 @@ jobs:
     defaults:
       run:
         working-directory: platform-infra
+    env:
+      ARM_USE_OIDC: "true"
+      ARM_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+      ARM_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+      ARM_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
 
@@ -97,43 +101,43 @@ jobs:
         with:
           terraform_version: 1.9.0
 
-      - uses: aws-actions/configure-aws-credentials@254c19bd240aabef8777f48595e9d2d7b972184b # v6
+      - uses: azure/login@a457da9ea143d694b1b9c7c869ebb04ebe844ef5 # v2.3.0
         with:
-          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
-          aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
 
       - name: Write backend config
-        working-directory: platform-infra/envs/${{ matrix.environment }}
-        env:
-          TF_BACKEND_KMS_KEY_ID: ${{ vars.TF_BACKEND_KMS_KEY_ID }}
+        working-directory: platform-infra/envs/azure/${{ matrix.environment }}
         run: |
           cat > backend.hcl <<EOF
-          bucket       = "${{ vars.TF_BACKEND_BUCKET }}"
-          key          = "platform-infra/${{ matrix.environment }}/terraform.tfstate"
-          region       = "${{ vars.AWS_REGION }}"
-          use_lockfile = true
-          encrypt      = true
+          resource_group_name  = "${{ vars.TF_AZURE_BACKEND_RESOURCE_GROUP }}"
+          storage_account_name = "${{ vars.TF_AZURE_BACKEND_STORAGE_ACCOUNT }}"
+          container_name       = "${{ vars.TF_AZURE_BACKEND_CONTAINER }}"
+          key                  = "platform-infra/azure/${{ matrix.environment }}/terraform.tfstate"
           EOF
-          if [ -n "${TF_BACKEND_KMS_KEY_ID:-}" ]; then
-            echo "kms_key_id = \"${TF_BACKEND_KMS_KEY_ID}\"" >> backend.hcl
-          fi
 
       - name: Terraform init
-        run: terraform -chdir=envs/${{ matrix.environment }} init -backend-config=backend.hcl
+        run: terraform -chdir=envs/azure/${{ matrix.environment }} init -backend-config=backend.hcl
 
       - name: Terraform plan
-        run: terraform -chdir=envs/${{ matrix.environment }} plan -no-color -out=tfplan
+        run: terraform -chdir=envs/azure/${{ matrix.environment }} plan -no-color -out=tfplan -var="subscription_id=${{ vars.AZURE_SUBSCRIPTION_ID }}"
 
   apply:
     name: apply
     needs: fmt-validate-scan
-    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && vars.AWS_ROLE_ARN != '' && vars.ENABLE_AWS_DEPLOY == 'true'
+    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && vars.AZURE_CLIENT_ID != ''
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         environment: ["dev", "prod"]
     environment: ${{ github.event_name == 'workflow_dispatch' && inputs.environment || matrix.environment }}
+    env:
+      ARM_USE_OIDC: "true"
+      ARM_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+      ARM_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+      ARM_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
     steps:
       - name: Skip non-selected environment
         if: github.event_name == 'workflow_dispatch' && matrix.environment != inputs.environment
@@ -147,37 +151,32 @@ jobs:
         with:
           terraform_version: 1.9.0
 
-      - uses: aws-actions/configure-aws-credentials@254c19bd240aabef8777f48595e9d2d7b972184b # v6
+      - uses: azure/login@a457da9ea143d694b1b9c7c869ebb04ebe844ef5 # v2.3.0
         if: github.event_name != 'workflow_dispatch' || matrix.environment == inputs.environment
         with:
-          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
-          aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
 
       - name: Write backend config
         if: github.event_name != 'workflow_dispatch' || matrix.environment == inputs.environment
-        working-directory: platform-infra/envs/${{ matrix.environment }}
-        env:
-          TF_BACKEND_KMS_KEY_ID: ${{ vars.TF_BACKEND_KMS_KEY_ID }}
+        working-directory: platform-infra/envs/azure/${{ matrix.environment }}
         run: |
           cat > backend.hcl <<EOF
-          bucket       = "${{ vars.TF_BACKEND_BUCKET }}"
-          key          = "platform-infra/${{ matrix.environment }}/terraform.tfstate"
-          region       = "${{ vars.AWS_REGION }}"
-          use_lockfile = true
-          encrypt      = true
+          resource_group_name  = "${{ vars.TF_AZURE_BACKEND_RESOURCE_GROUP }}"
+          storage_account_name = "${{ vars.TF_AZURE_BACKEND_STORAGE_ACCOUNT }}"
+          container_name       = "${{ vars.TF_AZURE_BACKEND_CONTAINER }}"
+          key                  = "platform-infra/azure/${{ matrix.environment }}/terraform.tfstate"
           EOF
-          if [ -n "${TF_BACKEND_KMS_KEY_ID:-}" ]; then
-            echo "kms_key_id = \"${TF_BACKEND_KMS_KEY_ID}\"" >> backend.hcl
-          fi
 
       - name: Terraform init
         if: github.event_name != 'workflow_dispatch' || matrix.environment == inputs.environment
-        run: terraform -chdir=platform-infra/envs/${{ matrix.environment }} init -backend-config=backend.hcl
+        run: terraform -chdir=platform-infra/envs/azure/${{ matrix.environment }} init -backend-config=backend.hcl
 
       - name: Terraform plan
         if: github.event_name != 'workflow_dispatch' || matrix.environment == inputs.environment
-        run: terraform -chdir=platform-infra/envs/${{ matrix.environment }} plan -out=tfplan
+        run: terraform -chdir=platform-infra/envs/azure/${{ matrix.environment }} plan -out=tfplan -var="subscription_id=${{ vars.AZURE_SUBSCRIPTION_ID }}"
 
       - name: Terraform apply
         if: github.event_name != 'workflow_dispatch' || matrix.environment == inputs.environment
-        run: terraform -chdir=platform-infra/envs/${{ matrix.environment }} apply -auto-approve tfplan
+        run: terraform -chdir=platform-infra/envs/azure/${{ matrix.environment }} apply -auto-approve tfplan

@@ -59,7 +59,7 @@ jobs:
 
   build-push-pr:
     needs: test-scan
-    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && vars.AWS_ROLE_ARN != ''
+    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && vars.AWS_ROLE_ARN != '' && vars.ENABLE_AWS_DEPLOY == 'true'
     runs-on: ubuntu-latest
     environment: dev
     permissions:
@@ -129,6 +129,94 @@ jobs:
           TAG: ${{ steps.meta.outputs.tag }}
         run: |
           BRANCH="chore/bump-${SERVICE_NAME}-${TAG}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "${BRANCH}"
+          git add platform-config/tenants/service-template-api
+          if git diff --cached --quiet; then
+            echo "No platform-config changes required."
+            exit 0
+          fi
+          git commit -m "chore(service-template-api): promote image ${TAG}"
+          git push -u origin "${BRANCH}"
+          gh pr create \
+            --title "chore(service-template-api): promote image ${TAG}" \
+            --body "Automated GitOps promotion for \`${SERVICE_NAME}\` image tag \`${TAG}\`. Argo CD reconciles after merge."
+
+  build-push-acr:
+    needs: test-scan
+    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && vars.AZURE_CLIENT_ID != ''
+    runs-on: ubuntu-latest
+    environment: dev
+    permissions:
+      contents: write
+      id-token: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
+        with:
+          go-version: "1.26.4"
+          cache-dependency-path: service-template-api/go.sum
+
+      - name: Compute image tag
+        id: meta
+        run: |
+          TAG="$(git rev-parse --short HEAD)"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+
+      - uses: azure/login@a457da9ea143d694b1b9c7c869ebb04ebe844ef5 # v2.3.0
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: ACR login
+        run: az acr login --name "${{ vars.ACR_REGISTRY }}"
+
+      - name: Build and push image
+        env:
+          REGISTRY: ${{ vars.ACR_REGISTRY }}.azurecr.io
+          TAG: ${{ steps.meta.outputs.tag }}
+        run: |
+          IMAGE="${REGISTRY}/${{ env.ECR_REPOSITORY }}:${TAG}"
+          docker build -t "${IMAGE}" service-template-api
+          docker push "${IMAGE}"
+          echo "IMAGE=${IMAGE}" >> "$GITHUB_ENV"
+
+      - name: Trivy image scan
+        uses: aquasecurity/trivy-action@df678dbccf677bc6937338d569ba0da18964a8cc # master
+        with:
+          image-ref: ${{ env.IMAGE }}
+          severity: CRITICAL,HIGH
+          exit-code: 1
+
+      - name: Update platform-config image tag
+        env:
+          TAG: ${{ steps.meta.outputs.tag }}
+        run: |
+          pip install --quiet pyyaml
+          python3 <<'PY'
+          import os, pathlib, yaml
+          tag = os.environ["TAG"]
+          for env in ("dev", "prod"):
+              path = pathlib.Path(f"platform-config/tenants/service-template-api/{env}/values.yaml")
+              if not path.exists():
+                  continue
+              data = yaml.safe_load(path.read_text()) or {}
+              data.setdefault("image", {})["tag"] = tag
+              path.write_text(yaml.safe_dump(data, sort_keys=False))
+          PY
+
+      - name: Create GitOps PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.meta.outputs.tag }}
+        run: |
+          BRANCH="chore/bump-${SERVICE_NAME}-acr-${TAG}"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git checkout -b "${BRANCH}"

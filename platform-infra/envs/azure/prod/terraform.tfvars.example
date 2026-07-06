@@ -1,0 +1,10 @@
+subscription_id     = "00000000-0000-0000-0000-000000000000"
+location            = "westeurope"
+resource_group_name = "pavestack-prod"
+acr_name            = "pavestackprodacr"
+
+# Grant an Entra ID group cluster-admin via Azure RBAC.
+# admin_group_object_ids = ["00000000-0000-0000-0000-000000000000"]
+
+# Create a GitHub Actions federated identity for CI applies.
+# enable_github_oidc_role = true
