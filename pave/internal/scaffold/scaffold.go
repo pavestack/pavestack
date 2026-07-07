@@ -48,6 +48,10 @@ func CreateService(fsys afero.Fs, repoRoot string, request validate.ServiceReque
 		return "", err
 	}
 
+	if err := verifyOpenAPISpec(fsys, serviceDir); err != nil {
+		return "", err
+	}
+
 	if request.Database {
 		if err := appendDatabaseStub(fsys, serviceDir); err != nil {
 			return "", err
@@ -144,6 +148,18 @@ func renameHelmChart(fsys afero.Fs, serviceDir, name string) error {
 	newChart := filepath.Join(serviceDir, "deploy", "helm", name+"-api")
 	if err := fsys.Rename(oldChart, newChart); err != nil {
 		return fmt.Errorf("rename helm chart: %w", err)
+	}
+	return nil
+}
+
+// verifyOpenAPISpec ensures the scaffolded service carries a contract-first
+// OpenAPI spec. walkReplace already rewrites the service name, title, and
+// description in-place (same mechanism as go.mod and catalog-info.yaml); this
+// just fails fast if the template's openapi.yaml went missing.
+func verifyOpenAPISpec(fsys afero.Fs, serviceDir string) error {
+	path := filepath.Join(serviceDir, "openapi.yaml")
+	if _, err := fsys.Stat(path); err != nil {
+		return fmt.Errorf("scaffolded service missing openapi.yaml: %w", err)
 	}
 	return nil
 }

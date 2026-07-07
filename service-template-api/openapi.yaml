@@ -1,0 +1,119 @@
+openapi: 3.1.0
+info:
+  title: service-template-api
+  description: >-
+    Golden-path internal API service template for Pavestack (service-template-api).
+    This file is the contract-first source of truth for the service's HTTP
+    surface: update it before changing handlers, and it is served live at
+    /openapi.json so consumers always see what is actually deployed.
+  version: "0.1.0"
+  contact:
+    name: team-platform
+servers:
+  - url: /
+    description: service-template-api HTTP server, relative to wherever it is deployed.
+tags:
+  - name: health
+    description: Liveness and readiness probes.
+  - name: meta
+    description: Service metadata endpoints.
+paths:
+  /health:
+    get:
+      operationId: getHealth
+      tags: [health]
+      summary: Liveness probe
+      description: Always returns 200 while the process is alive.
+      responses:
+        "200":
+          description: Service process is alive.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+        default:
+          description: Unexpected error.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /ready:
+    get:
+      operationId: getReady
+      tags: [health]
+      summary: Readiness probe
+      description: Reports whether the service is ready to accept traffic.
+      responses:
+        "200":
+          description: Service is ready to accept traffic.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReadyStatus"
+        "503":
+          description: Service is not yet ready to accept traffic.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReadyStatus"
+        default:
+          description: Unexpected error.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /openapi.json:
+    get:
+      operationId: getOpenAPISpec
+      tags: [meta]
+      summary: OpenAPI specification
+      description: >-
+        Returns this OpenAPI 3.1 document as JSON, converted at process
+        startup from the embedded openapi.yaml.
+      responses:
+        "200":
+          description: OpenAPI 3.1 document describing service-template-api.
+          content:
+            application/json:
+              schema:
+                type: object
+                description: An OpenAPI 3.1 document.
+        default:
+          description: Unexpected error.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      description: Liveness payload returned by GET /health.
+      required: [status, service]
+      properties:
+        status:
+          type: string
+          enum: [ok]
+          example: ok
+        service:
+          type: string
+          description: Configured SERVICE_NAME.
+          example: service-template-api
+    ReadyStatus:
+      type: object
+      description: Readiness payload returned by GET /ready.
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [ready, not_ready]
+          example: ready
+    Error:
+      type: object
+      description: Standard error envelope returned by non-2xx responses.
+      required: [error]
+      properties:
+        error:
+          type: string
+          description: Human-readable error message.
+          example: internal server error

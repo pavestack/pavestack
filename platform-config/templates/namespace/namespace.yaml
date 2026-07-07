@@ -6,3 +6,4 @@ metadata:
     pavestack.io/tenant: "true"
     pavestack.io/team: REPLACE_TEAM
     pavestack.io/managed-by: argocd
+    pavestack.io/cost-center: REPLACE_COST_CENTER

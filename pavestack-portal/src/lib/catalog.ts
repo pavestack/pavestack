@@ -9,6 +9,40 @@ export type EnvironmentState = {
   health: string;
 };
 
+/** Kyverno PolicyReport summary for one environment, or null when unknown (see reports/README.md). */
+export type PolicyCompliance = {
+  pass: number;
+  warn: number;
+  fail: number;
+  passPercent: number;
+} | null;
+
+/** OpenCost monthly allocation for one environment, or null when unknown. */
+export type CostSummary = {
+  amount: number;
+  currency: string;
+} | null;
+
+/** Argo CD app sync/health for one environment, or null when unknown. */
+export type DeploymentHealth = {
+  syncStatus: string;
+  health: string;
+  lastSyncAt: string | null;
+} | null;
+
+export type ApiEndpoint = {
+  method: string;
+  path: string;
+  summary: string;
+};
+
+/** Parsed from <service>/openapi.yaml at build time, or null when the service has none. */
+export type ApiSummary = {
+  title: string;
+  version: string;
+  endpoints: ApiEndpoint[];
+} | null;
+
 export type CatalogService = {
   id: string;
   name: string;
@@ -22,6 +56,11 @@ export type CatalogService = {
     overall: number;
     criteria: CatalogCriteria[];
   };
+  /** Per-environment report-derived signals. Optional for backward compatibility with older catalogs. */
+  policyCompliance?: Record<string, PolicyCompliance>;
+  costPerMonth?: Record<string, CostSummary>;
+  deploymentHealth?: Record<string, DeploymentHealth>;
+  api?: ApiSummary;
 };
 
 export type Catalog = {
@@ -84,6 +123,40 @@ export function sortServices(services: CatalogService[], key: SortKey): CatalogS
         return a.name.localeCompare(b.name);
     }
   });
+}
+
+/** Format a policy compliance signal for display, e.g. "92%" or "Unknown". */
+export function policyComplianceLabel(compliance: PolicyCompliance): string {
+  if (!compliance) return "Unknown";
+  return `${compliance.passPercent}%`;
+}
+
+/** Classify a policy compliance signal into the same tiers used for scores. */
+export function policyComplianceTier(
+  compliance: PolicyCompliance
+): "excellent" | "good" | "warning" | "critical" | "unknown" {
+  if (!compliance) return "unknown";
+  return scoreTier(compliance.passPercent);
+}
+
+/** Format a monthly cost signal for display, e.g. "$18.42/mo" or "Unknown". */
+export function costLabel(cost: CostSummary): string {
+  if (!cost) return "Unknown";
+  return `$${cost.amount.toFixed(2)}/mo`;
+}
+
+/** Format a deployment health signal for display, e.g. "Synced · Healthy" or "Unknown". */
+export function deploymentHealthLabel(health: DeploymentHealth): string {
+  if (!health) return "Unknown";
+  return `${health.syncStatus} · ${health.health}`;
+}
+
+/** Classify a deployment health signal into the same tiers used for scores. */
+export function deploymentHealthTier(
+  health: DeploymentHealth
+): "excellent" | "warning" | "critical" | "unknown" {
+  if (!health) return "unknown";
+  return health.health.toLowerCase() === "healthy" ? "excellent" : "warning";
 }
 
 /** Compute aggregate stats */

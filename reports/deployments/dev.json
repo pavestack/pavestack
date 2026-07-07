@@ -1,0 +1,11 @@
+{
+  "generatedAt": "2026-07-05T09:10:00Z",
+  "source": "argocd app list -o json | jq (see reports/README.md)",
+  "apps": {
+    "service-template-api": {
+      "syncStatus": "Synced",
+      "health": "Healthy",
+      "lastSyncAt": "2026-07-05T09:08:11Z"
+    }
+  }
+}

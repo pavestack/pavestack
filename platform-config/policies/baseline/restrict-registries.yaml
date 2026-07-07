@@ -1,0 +1,45 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: restrict-registries
+  annotations:
+    policies.kyverno.io/title: Restrict Image Registries
+    policies.kyverno.io/category: Best Practices
+    policies.kyverno.io/severity: medium
+    policies.kyverno.io/subject: Pod
+    policies.kyverno.io/description: >-
+      Images must be pulled from an approved platform registry so every image
+      running in the cluster has passed through our build/scan pipeline (ECR).
+      Unknown or public registries are not trusted.
+spec:
+  validationFailureAction: Audit
+  background: true
+  rules:
+    - name: validate-registries
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+      exclude:
+        any:
+          - resources:
+              namespaces:
+                - kube-system
+                - kyverno
+                - argocd
+                - observability
+                - cert-manager
+                - external-secrets
+                - external-dns
+      validate:
+        message: "Images must be pulled from an approved platform registry."
+        # REPLACE_REGISTRY is a placeholder for this account/region's ECR host —
+        # replace it before applying, e.g.:
+        #   123456789012.dkr.ecr.us-east-1.amazonaws.com/pavestack/*
+        # Add further anyPattern entries below for any other approved registry
+        # (e.g. a secondary region's ECR replica).
+        anyPattern:
+          - spec:
+              containers:
+                - image: "REPLACE_REGISTRY/*"

@@ -62,3 +62,38 @@ output "github_actions_role_arn" {
   description = "GitHub Actions role ARN, if created."
   value       = var.enable_github_oidc_role ? module.github_oidc[0].role_arn : null
 }
+
+output "observability_namespace" {
+  description = "Namespace the observability stack is deployed into."
+  value       = module.observability.namespace
+}
+
+output "otel_exporter_otlp_endpoint" {
+  description = "Tempo OTLP/HTTP endpoint for services' OTEL_EXPORTER_OTLP_ENDPOINT."
+  value       = module.observability.otel_exporter_otlp_endpoint
+}
+
+output "grafana_service" {
+  description = "Grafana Kubernetes Service name."
+  value       = module.observability.grafana_service
+}
+
+output "aws_load_balancer_controller_role_arn" {
+  description = "IAM role ARN assumed by the AWS Load Balancer Controller."
+  value       = module.ingress.aws_load_balancer_controller_role_arn
+}
+
+output "external_secrets_role_arn" {
+  description = "IAM role ARN assumed by the External Secrets Operator controller's service account."
+  value       = module.secrets.external_secrets_role_arn
+}
+
+output "external_secrets_namespace" {
+  description = "Namespace the External Secrets Operator is installed into."
+  value       = module.secrets.external_secrets_namespace
+}
+
+output "kyverno_namespace" {
+  description = "Namespace the Kyverno admission controller is installed into."
+  value       = module.policy.namespace
+}

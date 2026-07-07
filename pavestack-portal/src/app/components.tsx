@@ -1,15 +1,44 @@
 import React, { useState } from "react";
-import type { CatalogService, CatalogCriteria, SortKey } from "../lib/catalog";
+import type {
+  CatalogService,
+  CatalogCriteria,
+  SortKey,
+  PolicyCompliance,
+  CostSummary,
+  DeploymentHealth,
+  ApiSummary,
+} from "../lib/catalog";
 import {
   scoreColor,
   scoreDashOffset,
   scoreTier,
+  policyComplianceLabel,
+  policyComplianceTier,
+  costLabel,
+  deploymentHealthLabel,
+  deploymentHealthTier,
 } from "../lib/catalog";
 import {
   IconCheck,
   IconX,
   IconExternalLink,
 } from "./icons";
+
+/** Map a score/signal tier to the shared badge color classes. */
+function tierBadgeClass(tier: "excellent" | "good" | "warning" | "critical" | "unknown"): string {
+  switch (tier) {
+    case "excellent":
+      return "badge-success";
+    case "good":
+      return "badge-accent";
+    case "warning":
+      return "badge-warning";
+    case "critical":
+      return "badge-danger";
+    default:
+      return "badge-neutral";
+  }
+}
 
 /* ────────────────────────────── Score Ring ──────────────────────────── */
 
@@ -125,6 +154,83 @@ export function EnvBadge({ env, status, health }: { env: string; status: string;
   );
 }
 
+/* ────────────────────────────── Platform Signals ──────────────────────────── */
+
+/** One environment's row of report-derived scorecard signals: policy, cost, deployment health. */
+export function PlatformSignalsRow({
+  env,
+  policyCompliance,
+  costPerMonth,
+  deploymentHealth,
+}: {
+  env: string;
+  policyCompliance: PolicyCompliance;
+  costPerMonth: CostSummary;
+  deploymentHealth: DeploymentHealth;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3 py-1.5">
+      <span className="text-xs font-semibold uppercase text-pave-600 tracking-wider shrink-0">
+        {env}
+      </span>
+      <div className="flex flex-wrap items-center justify-end gap-1.5">
+        <span className={`badge text-[10px] ${tierBadgeClass(policyComplianceTier(policyCompliance))}`}>
+          Policy {policyComplianceLabel(policyCompliance)}
+        </span>
+        <span className="badge badge-neutral text-[10px]">
+          Cost {costLabel(costPerMonth)}
+        </span>
+        <span className={`badge text-[10px] ${tierBadgeClass(deploymentHealthTier(deploymentHealth))}`}>
+          {deploymentHealthLabel(deploymentHealth)}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+/* ────────────────────────────── API Section ──────────────────────────── */
+
+/** Renders the endpoint table parsed from <service>/openapi.yaml. Renders nothing if absent. */
+export function ApiSection({ api }: { api: ApiSummary | undefined }) {
+  if (!api) return null;
+
+  return (
+    <div className="mt-5 pt-5 border-t border-pave-800">
+      <div className="flex items-center justify-between gap-3 mb-2">
+        <h3 className="text-xs font-medium uppercase text-pave-600 tracking-wider">API</h3>
+        <span className="text-xs text-pave-600 font-mono truncate">
+          {api.title}
+          {api.version ? ` v${api.version}` : ""}
+        </span>
+      </div>
+      {api.endpoints.length === 0 ? (
+        <p className="text-xs text-pave-600">No endpoints documented.</p>
+      ) : (
+        <div className="overflow-x-auto rounded-lg border border-pave-800">
+          <table className="w-full text-xs">
+            <thead className="bg-pave-850 text-pave-600 uppercase tracking-wider">
+              <tr>
+                <th className="text-left px-3 py-2 font-medium">Method</th>
+                <th className="text-left px-3 py-2 font-medium">Path</th>
+                <th className="text-left px-3 py-2 font-medium">Summary</th>
+              </tr>
+            </thead>
+            <tbody>
+              {api.endpoints.map((ep, i) => (
+                <tr key={`${ep.method}-${ep.path}-${i}`} className="border-t border-pave-800">
+                  <td className="px-3 py-2 font-mono text-pave-accent">{ep.method}</td>
+                  <td className="px-3 py-2 font-mono text-pave-400">{ep.path}</td>
+                  <td className="px-3 py-2 text-pave-500">{ep.summary || "—"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ────────────────────────────── Sort Selector ──────────────────────────── */
 
 export function SortSelect({ value, onChange }: { value: SortKey; onChange: (v: SortKey) => void }) {
@@ -231,9 +337,27 @@ export function ServiceCard({ service, index }: { service: CatalogService; index
             {service.scorecard.criteria.map((item) => (
               <CriteriaRow key={item.key} item={item} />
             ))}
+            {(service.policyCompliance || service.costPerMonth || service.deploymentHealth) && (
+              <div className="mt-3 pt-3 border-t border-pave-800">
+                <h3 className="text-xs font-medium uppercase text-pave-600 tracking-wider mb-1">
+                  Platform Signals
+                </h3>
+                {Object.keys(service.environments).map((env) => (
+                  <PlatformSignalsRow
+                    key={env}
+                    env={env}
+                    policyCompliance={service.policyCompliance?.[env] ?? null}
+                    costPerMonth={service.costPerMonth?.[env] ?? null}
+                    deploymentHealth={service.deploymentHealth?.[env] ?? null}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>
+
+      <ApiSection api={service.api} />
     </article>
   );
 }

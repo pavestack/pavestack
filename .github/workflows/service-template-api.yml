@@ -41,6 +41,11 @@ jobs:
       - name: Unit tests
         run: go test ./...
 
+      - name: Verify OpenAPI spec is present
+        run: test -f openapi.yaml
+
+      - name: Spec lint (Spectral)
+        run: npx --yes @stoplight/spectral-cli lint openapi.yaml --ruleset .spectral.yaml
 
       - name: Trivy filesystem scan
         uses: aquasecurity/trivy-action@df678dbccf677bc6937338d569ba0da18964a8cc # master
@@ -56,6 +61,13 @@ jobs:
           directory: service-template-api
           quiet: true
           config_file: .checkov.yaml
+
+      - name: Generate source SBOM
+        uses: anchore/sbom-action@v0 # TODO: pin to commit SHA
+        with:
+          path: service-template-api
+          format: spdx-json
+          artifact-name: sbom-source.spdx.json
 
   build-push-pr:
     needs: test-scan
@@ -106,6 +118,12 @@ jobs:
           severity: CRITICAL,HIGH
           exit-code: 1
 
+      - name: Generate image SBOM
+        uses: anchore/sbom-action@v0 # TODO: pin to commit SHA
+        with:
+          image: ${{ env.IMAGE }}
+          artifact-name: sbom-image.spdx.json
+
       - name: Update platform-config image tag
         env:
           TAG: ${{ steps.meta.outputs.tag }}
@@ -114,7 +132,9 @@ jobs:
           python3 <<'PY'
           import os, pathlib, yaml
           tag = os.environ["TAG"]
-          for env in ("dev", "prod"):
+          # dev and staging promote automatically; staging -> prod is a separate
+          # manually-approved PR (see docs/promotion.md).
+          for env in ("dev", "staging"):
               path = pathlib.Path(f"platform-config/tenants/service-template-api/{env}/values.yaml")
               if not path.exists():
                   continue
@@ -141,7 +161,7 @@ jobs:
           git push -u origin "${BRANCH}"
           gh pr create \
             --title "chore(service-template-api): promote image ${TAG}" \
-            --body "Automated GitOps promotion for \`${SERVICE_NAME}\` image tag \`${TAG}\`. Argo CD reconciles after merge."
+            --body "Automated GitOps promotion for \`${SERVICE_NAME}\` image tag \`${TAG}\` to dev and staging. Argo CD reconciles after merge; staging -> prod is a separate approved PR (docs/promotion.md)."
 
   build-push-acr:
     needs: test-scan
@@ -202,7 +222,9 @@ jobs:
           python3 <<'PY'
           import os, pathlib, yaml
           tag = os.environ["TAG"]
-          for env in ("dev", "prod"):
+          # dev and staging promote automatically; staging -> prod is a separate
+          # manually-approved PR (see docs/promotion.md).
+          for env in ("dev", "staging"):
               path = pathlib.Path(f"platform-config/tenants/service-template-api/{env}/values.yaml")
               if not path.exists():
                   continue
@@ -229,4 +251,4 @@ jobs:
           git push -u origin "${BRANCH}"
           gh pr create \
             --title "chore(service-template-api): promote image ${TAG}" \
-            --body "Automated GitOps promotion for \`${SERVICE_NAME}\` image tag \`${TAG}\`. Argo CD reconciles after merge."
+            --body "Automated GitOps promotion for \`${SERVICE_NAME}\` image tag \`${TAG}\` to dev and staging. Argo CD reconciles after merge; staging -> prod is a separate approved PR (docs/promotion.md)."

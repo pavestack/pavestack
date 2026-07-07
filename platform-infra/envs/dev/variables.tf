@@ -60,3 +60,34 @@ variable "image_repositories" {
     "pavestack/platform-tools"
   ]
 }
+
+variable "route53_zone_id" {
+  description = "Route53 hosted zone ID external-dns is allowed to manage records in. Empty (the default) disables external-dns so `terraform plan` works without a real zone; real deployments set this via tfvars."
+  type        = string
+  default     = ""
+}
+
+variable "platform_domain" {
+  description = "Domain suffix external-dns restricts record management to (external-dns domainFilter)."
+  type        = string
+  default     = "dev.pavestack.example.com"
+}
+
+variable "alert_webhook_url" {
+  description = "Slack-compatible incoming webhook URL for Alertmanager notifications. Empty routes alerts to a blackhole receiver so the stack works with no external dependency."
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "monthly_budget_amount" {
+  description = "Monthly AWS cost budget in USD for this environment (string, per aws_budgets_budget)."
+  type        = string
+  default     = "100"
+}
+
+variable "budget_notification_emails" {
+  description = "Email addresses subscribed to budget alert notifications."
+  type        = list(string)
+  default     = []
+}
