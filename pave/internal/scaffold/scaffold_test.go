@@ -116,6 +116,37 @@ func TestCreateServiceWithDatabase(t *testing.T) {
 	}
 }
 
+func TestCreateServiceTemplatesOpenAPISpec(t *testing.T) {
+	fsys, root := testutil.SetupWorkspace(t, afero.NewMemMapFs())
+
+	request := validate.ServiceRequest{
+		Name:     "payments",
+		Team:     "team-payments",
+		Database: false,
+	}
+
+	serviceDir, err := scaffold.CreateService(fsys, root, request)
+	if err != nil {
+		t.Fatalf("CreateService failed: %v", err)
+	}
+
+	spec, err := afero.ReadFile(fsys, filepath.Join(serviceDir, "openapi.yaml"))
+	if err != nil {
+		t.Fatalf("openapi.yaml not scaffolded: %v", err)
+	}
+
+	content := string(spec)
+	if strings.Contains(content, "service-template-api") {
+		t.Errorf("openapi.yaml still references the template name: %s", content)
+	}
+	if !strings.Contains(content, "title: payments-api") {
+		t.Errorf("openapi.yaml title not substituted: %s", content)
+	}
+	if !strings.Contains(content, "payments-api HTTP server") {
+		t.Errorf("openapi.yaml server description not substituted: %s", content)
+	}
+}
+
 func TestCreateServiceWritesMetadata(t *testing.T) {
 	fsys, root := testutil.SetupWorkspace(t, afero.NewMemMapFs())
 

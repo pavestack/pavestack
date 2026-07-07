@@ -4,7 +4,8 @@ Golden-path scaffold for internal API services in the Pavestack platform.
 
 ## Features
 
-- **Go API server** with `/health` and `/ready` endpoints
+- **Go API server** with `/health`, `/ready`, and `/openapi.json` endpoints
+- **Contract-first API**: `openapi.yaml` is the source of truth and is served live at `/openapi.json`
 - **OpenTelemetry** instrumentation hooks (traces via OTLP/HTTP)
 - **Structured logging** via `go.uber.org/zap` (JSON output, ISO 8601 timestamps)
 - **Multi-stage Dockerfile** — `distroless/static-debian12:nonroot` final image (~2 MB)
@@ -17,10 +18,29 @@ Golden-path scaffold for internal API services in the Pavestack platform.
 cmd/server/         Entrypoint — signal handling, graceful shutdown
 internal/config/    Environment-based configuration (SERVICE_NAME, LOG_LEVEL, etc.)
 internal/logging/   Structured zap logger factory
-internal/server/    HTTP handler with health and readiness routes
+internal/server/    HTTP handler with health, ready, and openapi.json routes
 internal/telemetry/ OpenTelemetry TracerProvider bootstrap
 deploy/helm/        Helm chart with Deployment, Service, ServiceAccount, NetworkPolicy
+openapi.yaml         OpenAPI 3.1 contract — the source of truth for the HTTP surface
+openapi.go           go:embed of openapi.yaml, exposed as JSON for /openapi.json
 ```
+
+## Contract-first API
+
+`openapi.yaml` at the repo root is the source of truth for this service's HTTP
+surface. Workflow:
+
+1. Edit `openapi.yaml` first when adding, changing, or removing an endpoint.
+2. Update the handler in `internal/server` to match.
+3. The spec is embedded via `go:embed` (see `openapi.go`) and converted to
+   JSON once at startup; the running service serves it live at
+   `GET /openapi.json`, so consumers always see what's actually deployed.
+4. CI lints `openapi.yaml` with [Spectral](https://github.com/stoplightio/spectral)
+   (`.spectral.yaml`, extending `spectral:oas`) on every push/PR.
+
+When this template is scaffolded via `pave create-service`, `openapi.yaml`'s
+title, description, and server description are automatically rewritten with
+the new service name, the same way `go.mod` and `catalog-info.yaml` are.
 
 ## Configuration
 
@@ -70,7 +90,7 @@ Default resource limits:
 ## CI/CD flow
 
 1. Push to `main` triggers `.github/workflows/service-template-api.yml`
-2. Go tests and security scans (Trivy, Checkov, Gitleaks) run
+2. Go tests, an OpenAPI spec lint (Spectral), and security scans (Trivy, Checkov, Gitleaks) run
 3. Docker image is built and pushed to ECR with `git rev-parse --short HEAD` as tag
 4. Trivy scans the container image
 5. CI opens a PR to update `platform-config/tenants/service-template-api/*/values.yaml` with the new image tag
