@@ -35,7 +35,9 @@ function readJsonIfPresent(filePath) {
   try {
     return JSON.parse(fs.readFileSync(filePath, "utf8"));
   } catch (err) {
-    console.warn(`generate-catalog: failed to parse ${path.relative(repoRoot, filePath)}: ${err.message}`);
+    console.warn(
+      `generate-catalog: failed to parse ${path.relative(repoRoot, filePath)}: ${err.message}`
+    );
     return null;
   }
 }
@@ -55,7 +57,9 @@ function loadApiSummary(dir) {
     const doc = parseYaml(fs.readFileSync(openApiPath, "utf8"));
     return parseOpenApiDoc(doc);
   } catch (err) {
-    console.warn(`generate-catalog: failed to parse ${path.relative(repoRoot, openApiPath)}: ${err.message}`);
+    console.warn(
+      `generate-catalog: failed to parse ${path.relative(repoRoot, openApiPath)}: ${err.message}`
+    );
     return null;
   }
 }
@@ -189,7 +193,7 @@ function loadService(dir) {
     : "";
 
   const catalog = parseYaml(catalogContent) || {};
-  const scorecardObj = scorecardContent ? (parseYaml(scorecardContent) || {}) : null;
+  const scorecardObj = scorecardContent ? parseYaml(scorecardContent) || {} : null;
 
   const name = catalog.metadata?.name || "";
   const description = catalog.metadata?.description || "";

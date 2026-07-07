@@ -62,7 +62,13 @@ describe("computeCostPerMonth", () => {
 describe("computeDeploymentHealth", () => {
   test("reads sync status, health and last sync time for a matching app", () => {
     const report = {
-      apps: { "service-a": { syncStatus: "Synced", health: "Healthy", lastSyncAt: "2026-07-05T09:08:11Z" } },
+      apps: {
+        "service-a": {
+          syncStatus: "Synced",
+          health: "Healthy",
+          lastSyncAt: "2026-07-05T09:08:11Z",
+        },
+      },
     };
     expect(computeDeploymentHealth(report, "service-a")).toEqual({
       syncStatus: "Synced",

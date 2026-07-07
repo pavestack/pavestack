@@ -270,7 +270,11 @@ describe("Catalog Helpers", () => {
 
   describe("deploymentHealthLabel / deploymentHealthTier", () => {
     test("formats and tiers a healthy deployment", () => {
-      const health = { syncStatus: "Synced", health: "Healthy", lastSyncAt: "2026-07-05T09:08:11Z" };
+      const health = {
+        syncStatus: "Synced",
+        health: "Healthy",
+        lastSyncAt: "2026-07-05T09:08:11Z",
+      };
       expect(deploymentHealthLabel(health)).toBe("Synced · Healthy");
       expect(deploymentHealthTier(health)).toBe("excellent");
     });
@@ -294,13 +298,13 @@ describe("Catalog Helpers", () => {
         costPerMonth: { dev: { amount: 18.42, currency: "USD" }, prod: null },
         deploymentHealth: {
           dev: { syncStatus: "Synced", health: "Healthy", lastSyncAt: "2026-07-05T09:08:11Z" },
-          prod: null
+          prod: null,
         },
         api: {
           title: "Service A",
           version: "1.0.0",
-          endpoints: [{ method: "GET", path: "/health", summary: "Liveness probe" }]
-        }
+          endpoints: [{ method: "GET", path: "/health", summary: "Liveness probe" }],
+        },
       };
 
       const services = [enriched, mockServices[1]];

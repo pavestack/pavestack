@@ -20,13 +20,7 @@ import {
   deploymentHealthLabel,
   deploymentHealthTier,
 } from "../lib/catalog";
-import {
-  IconAlertTriangle,
-  IconCheck,
-  IconExternalLink,
-  IconInbox,
-  IconX,
-} from "./icons";
+import { IconAlertTriangle, IconCheck, IconExternalLink, IconInbox, IconX } from "./icons";
 
 /** Map a score/signal tier to the shared badge color classes. */
 function tierBadgeClass(tier: "excellent" | "good" | "warning" | "critical" | "unknown"): string {
@@ -192,13 +186,15 @@ export function PlatformSignalsRow({
         {env}
       </span>
       <div className="flex flex-wrap items-center justify-end gap-1.5">
-        <span className={`badge text-[10px] ${tierBadgeClass(policyComplianceTier(policyCompliance))}`}>
+        <span
+          className={`badge text-[10px] ${tierBadgeClass(policyComplianceTier(policyCompliance))}`}
+        >
           Policy {policyComplianceLabel(policyCompliance)}
         </span>
-        <span className="badge badge-neutral text-[10px]">
-          Cost {costLabel(costPerMonth)}
-        </span>
-        <span className={`badge text-[10px] ${tierBadgeClass(deploymentHealthTier(deploymentHealth))}`}>
+        <span className="badge badge-neutral text-[10px]">Cost {costLabel(costPerMonth)}</span>
+        <span
+          className={`badge text-[10px] ${tierBadgeClass(deploymentHealthTier(deploymentHealth))}`}
+        >
           {deploymentHealthLabel(deploymentHealth)}
         </span>
       </div>
