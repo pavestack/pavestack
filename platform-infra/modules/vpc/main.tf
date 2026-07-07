@@ -17,7 +17,6 @@ locals {
 }
 
 resource "aws_vpc" "this" {
-  # checkov:skip=CKV2_AWS_11:VPC flow logging is not required for the demo platform environments
   cidr_block           = var.vpc_cidr
   enable_dns_hostnames = true
   enable_dns_support   = true
@@ -139,4 +138,139 @@ resource "aws_route_table_association" "private" {
 
   subnet_id      = each.value.id
   route_table_id = aws_route_table.private[each.key].id
+}
+
+data "aws_caller_identity" "current" {}
+
+data "aws_region" "current" {}
+
+locals {
+  flow_log_group_name = "/aws/vpc-flow-logs/${var.name}"
+  flow_log_group_arn  = "arn:aws:logs:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:log-group:${local.flow_log_group_name}:*"
+}
+
+resource "aws_kms_key" "flow_logs" {
+  count = var.enable_flow_logs ? 1 : 0
+
+  description             = "KMS key for ${var.name} VPC flow logs encryption"
+  deletion_window_in_days = 10
+  enable_key_rotation     = true
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "Enable IAM User Permissions"
+        Effect = "Allow"
+        Principal = {
+          AWS = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"
+        }
+        Action   = "kms:*"
+        Resource = "*"
+      },
+      {
+        Sid    = "AllowCloudWatchLogsEncryption"
+        Effect = "Allow"
+        Principal = {
+          Service = "logs.${data.aws_region.current.name}.amazonaws.com"
+        }
+        Action = [
+          "kms:Encrypt*",
+          "kms:Decrypt*",
+          "kms:ReEncrypt*",
+          "kms:GenerateDataKey*",
+          "kms:Describe*"
+        ]
+        Resource = "*"
+        Condition = {
+          ArnLike = {
+            "kms:EncryptionContext:aws:logs:arn" = local.flow_log_group_arn
+          }
+        }
+      }
+    ]
+  })
+
+  tags = merge(var.tags, {
+    Name = "${var.name}-vpc-flow-logs"
+  })
+}
+
+resource "aws_kms_alias" "flow_logs" {
+  count = var.enable_flow_logs ? 1 : 0
+
+  name          = "alias/${var.name}-vpc-flow-logs"
+  target_key_id = aws_kms_key.flow_logs[0].key_id
+}
+
+resource "aws_cloudwatch_log_group" "flow_logs" {
+  count = var.enable_flow_logs ? 1 : 0
+
+  name              = local.flow_log_group_name
+  retention_in_days = var.flow_log_retention_days
+  kms_key_id        = aws_kms_key.flow_logs[0].arn
+
+  tags = merge(var.tags, {
+    Name = "${var.name}-vpc-flow-logs"
+  })
+}
+
+data "aws_iam_policy_document" "flow_logs_assume_role" {
+  count = var.enable_flow_logs ? 1 : 0
+
+  statement {
+    actions = ["sts:AssumeRole"]
+
+    principals {
+      type        = "Service"
+      identifiers = ["vpc-flow-logs.amazonaws.com"]
+    }
+  }
+}
+
+resource "aws_iam_role" "flow_logs" {
+  count = var.enable_flow_logs ? 1 : 0
+
+  name               = "${var.name}-vpc-flow-logs"
+  assume_role_policy = data.aws_iam_policy_document.flow_logs_assume_role[0].json
+
+  tags = var.tags
+}
+
+data "aws_iam_policy_document" "flow_logs" {
+  count = var.enable_flow_logs ? 1 : 0
+
+  statement {
+    actions = [
+      "logs:CreateLogStream",
+      "logs:PutLogEvents",
+      "logs:DescribeLogGroups",
+      "logs:DescribeLogStreams"
+    ]
+    resources = [
+      aws_cloudwatch_log_group.flow_logs[0].arn,
+      "${aws_cloudwatch_log_group.flow_logs[0].arn}:*"
+    ]
+  }
+}
+
+resource "aws_iam_role_policy" "flow_logs" {
+  count = var.enable_flow_logs ? 1 : 0
+
+  name   = "${var.name}-vpc-flow-logs"
+  role   = aws_iam_role.flow_logs[0].id
+  policy = data.aws_iam_policy_document.flow_logs[0].json
+}
+
+resource "aws_flow_log" "this" {
+  count = var.enable_flow_logs ? 1 : 0
+
+  log_destination_type = "cloud-watch-logs"
+  log_destination      = aws_cloudwatch_log_group.flow_logs[0].arn
+  iam_role_arn         = aws_iam_role.flow_logs[0].arn
+  traffic_type         = "ALL"
+  vpc_id               = aws_vpc.this.id
+
+  tags = merge(var.tags, {
+    Name = "${var.name}-vpc-flow-log"
+  })
 }
