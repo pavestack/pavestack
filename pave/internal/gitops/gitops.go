@@ -11,6 +11,9 @@ import (
 
 // WriteTenantManifests writes the initial ArgoCD tenant manifests by delegating to TenantManifestRenderer.
 func WriteTenantManifests(repoRoot string, request validate.ServiceRequest, serviceDir string) error {
+	if !validate.SafePathComponent(request.Name) {
+		return fmt.Errorf("invalid service name %q", request.Name)
+	}
 	tenantRoot := filepath.Join(repoRoot, "platform-config", "tenants", request.Name)
 	relHelmPath, err := filepath.Rel(repoRoot, filepath.Join(serviceDir, "deploy", "helm", request.Name+"-api"))
 	if err != nil {

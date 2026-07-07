@@ -132,6 +132,7 @@ func (s *Service) HandleCallback(w http.ResponseWriter, r *http.Request) {
 	// Always clear the one-time state cookie, whether or not it validates.
 	defer http.SetCookie(w, &http.Cookie{
 		Name: stateCookieName, Value: "", Path: "/auth/github", MaxAge: -1,
+		HttpOnly: true, Secure: s.cfg.CookieSecure, SameSite: http.SameSiteLaxMode,
 	})
 
 	stateCookie, err := r.Cookie(stateCookieName)
@@ -186,7 +187,10 @@ func (s *Service) HandleCallback(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Service) HandleLogout(w http.ResponseWriter, r *http.Request) {
-	http.SetCookie(w, &http.Cookie{Name: sessionCookieName, Value: "", Path: "/", MaxAge: -1})
+	http.SetCookie(w, &http.Cookie{
+		Name: sessionCookieName, Value: "", Path: "/", MaxAge: -1,
+		HttpOnly: true, Secure: s.cfg.CookieSecure, SameSite: http.SameSiteLaxMode,
+	})
 	if s.cfg.PortalURL == "" {
 		w.WriteHeader(http.StatusNoContent)
 		return

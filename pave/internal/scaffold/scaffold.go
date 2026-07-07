@@ -32,6 +32,9 @@ const createdViaAnnotation = "pavestack.io/created-via: pave-cli"
 
 // CreateService scaffolds a new internal API service.
 func CreateService(fsys afero.Fs, repoRoot string, request validate.ServiceRequest) (string, error) {
+	if !validate.SafePathComponent(request.Name) {
+		return "", fmt.Errorf("invalid service name %q", request.Name)
+	}
 	request.ApplyDefaults()
 	tier := cost.ResolveTier(request.Tier)
 

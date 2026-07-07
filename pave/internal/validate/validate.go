@@ -5,10 +5,23 @@ import (
 	"encoding/json"
 	"fmt"
 	"path/filepath"
+	"strings"
 
 	"github.com/santhosh-tekuri/jsonschema/v5"
 	"github.com/spf13/afero"
 )
+
+// SafePathComponent reports whether name can be embedded in a filesystem
+// path without escaping its directory: single path element, no separators,
+// no traversal. The service-request JSON schema already enforces a stricter
+// shape at every entry point; this is the defense-in-depth check the
+// filesystem-writing packages apply right before use.
+func SafePathComponent(name string) bool {
+	return name != "" &&
+		!strings.Contains(name, "..") &&
+		!strings.ContainsAny(name, "/\\") &&
+		filepath.Clean(name) == name
+}
 
 type ServiceRequest struct {
 	Name     string `json:"name"`
