@@ -1,0 +1,8 @@
+{
+  "generatedAt": "2026-07-05T09:05:00Z",
+  "source": "OpenCost /allocation API (window=30d, aggregate=namespace) (see reports/README.md)",
+  "currency": "USD",
+  "namespaces": {
+    "service-template-api": { "monthlyCost": 18.42 }
+  }
+}

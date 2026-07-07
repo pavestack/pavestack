@@ -1,16 +1,59 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import yaml from "js-yaml";
+import { load as parseYaml } from "js-yaml";
+import {
+  computePolicyCompliance,
+  computeCostPerMonth,
+  computeDeploymentHealth,
+  parseOpenApiDoc,
+} from "./report-helpers.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, "..", "..");
 const outputPath = path.join(__dirname, "..", "public", "catalog.json");
+const reportsRoot = path.join(repoRoot, "reports");
+
+// Environments the platform provisions for every tenant (see platform-config/tenants).
+const ENVS = ["dev", "prod"];
 
 const searchRoots = [
   path.join(repoRoot, "service-template-api"),
   path.join(repoRoot, "services"),
 ];
+
+// reports/<kind>/<env>.json are read once per (kind, env) and shared across services.
+const reportCache = new Map();
+
+function readJsonIfPresent(filePath) {
+  if (!fs.existsSync(filePath)) return null;
+  try {
+    return JSON.parse(fs.readFileSync(filePath, "utf8"));
+  } catch (err) {
+    console.warn(`generate-catalog: failed to parse ${path.relative(repoRoot, filePath)}: ${err.message}`);
+    return null;
+  }
+}
+
+function getReport(kind, env) {
+  const key = `${kind}/${env}`;
+  if (!reportCache.has(key)) {
+    reportCache.set(key, readJsonIfPresent(path.join(reportsRoot, kind, `${env}.json`)));
+  }
+  return reportCache.get(key);
+}
+
+function loadApiSummary(dir) {
+  const openApiPath = path.join(dir, "openapi.yaml");
+  if (!fs.existsSync(openApiPath)) return null;
+  try {
+    const doc = parseYaml(fs.readFileSync(openApiPath, "utf8"));
+    return parseOpenApiDoc(doc);
+  } catch (err) {
+    console.warn(`generate-catalog: failed to parse ${path.relative(repoRoot, openApiPath)}: ${err.message}`);
+    return null;
+  }
+}
 
 function parseScorecard(scorecardObj) {
   if (!scorecardObj) {
@@ -72,14 +115,26 @@ function loadService(dir) {
     ? fs.readFileSync(scorecardPath, "utf8")
     : "";
 
-  const catalog = yaml.load(catalogContent) || {};
-  const scorecardObj = scorecardContent ? (yaml.load(scorecardContent) || {}) : null;
+  const catalog = parseYaml(catalogContent) || {};
+  const scorecardObj = scorecardContent ? (parseYaml(scorecardContent) || {}) : null;
 
   const name = catalog.metadata?.name || "";
   const description = catalog.metadata?.description || "";
   const owner = catalog.spec?.owner || scorecardObj?.owner || "unknown";
   const lifecycle = catalog.spec?.lifecycle || "experimental";
   const github = catalog.metadata?.annotations?.["github.com/project-slug"] || "pavestack/pavestack";
+
+  // Report-derived signals, one entry per environment. Any of these is `null` when
+  // the corresponding reports/<kind>/<env>.json is absent, or doesn't mention this
+  // service yet — the UI renders that as "unknown" rather than failing the build.
+  const policyCompliance = {};
+  const costPerMonth = {};
+  const deploymentHealth = {};
+  for (const env of ENVS) {
+    policyCompliance[env] = computePolicyCompliance(getReport("policy", env), name);
+    costPerMonth[env] = computeCostPerMonth(getReport("cost", env), name);
+    deploymentHealth[env] = computeDeploymentHealth(getReport("deployments", env), name);
+  }
 
   return {
     id: name,
@@ -94,6 +149,10 @@ function loadService(dir) {
       prod: { status: "synced", health: "healthy" },
     },
     scorecard: parseScorecard(scorecardObj),
+    policyCompliance,
+    costPerMonth,
+    deploymentHealth,
+    api: loadApiSummary(dir),
   };
 }
 

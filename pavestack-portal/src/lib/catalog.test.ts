@@ -7,6 +7,11 @@ import {
   sortServices,
   computeStats,
   loadCatalog,
+  policyComplianceLabel,
+  policyComplianceTier,
+  costLabel,
+  deploymentHealthLabel,
+  deploymentHealthTier,
   CatalogService
 } from "./catalog";
 
@@ -170,6 +175,77 @@ describe("Catalog Helpers", () => {
       expect(stats.passing).toBe(0);
       expect(stats.totalCriteria).toBe(0);
       expect(stats.passingCriteria).toBe(0);
+    });
+  });
+
+  describe("policyComplianceLabel / policyComplianceTier", () => {
+    test("formats a known compliance signal and tiers it like a score", () => {
+      const compliance = { pass: 24, warn: 2, fail: 0, passPercent: 92 };
+      expect(policyComplianceLabel(compliance)).toBe("92%");
+      expect(policyComplianceTier(compliance)).toBe("excellent");
+    });
+
+    test("falls back to unknown when the artifact/service entry is absent", () => {
+      expect(policyComplianceLabel(null)).toBe("Unknown");
+      expect(policyComplianceTier(null)).toBe("unknown");
+    });
+  });
+
+  describe("costLabel", () => {
+    test("formats a known monthly cost", () => {
+      expect(costLabel({ amount: 18.42, currency: "USD" })).toBe("$18.42/mo");
+    });
+
+    test("falls back to unknown when the artifact/service entry is absent", () => {
+      expect(costLabel(null)).toBe("Unknown");
+    });
+  });
+
+  describe("deploymentHealthLabel / deploymentHealthTier", () => {
+    test("formats and tiers a healthy deployment", () => {
+      const health = { syncStatus: "Synced", health: "Healthy", lastSyncAt: "2026-07-05T09:08:11Z" };
+      expect(deploymentHealthLabel(health)).toBe("Synced · Healthy");
+      expect(deploymentHealthTier(health)).toBe("excellent");
+    });
+
+    test("tiers a non-healthy deployment as a warning", () => {
+      const health = { syncStatus: "OutOfSync", health: "Degraded", lastSyncAt: null };
+      expect(deploymentHealthTier(health)).toBe("warning");
+    });
+
+    test("falls back to unknown when the artifact/service entry is absent", () => {
+      expect(deploymentHealthLabel(null)).toBe("Unknown");
+      expect(deploymentHealthTier(null)).toBe("unknown");
+    });
+  });
+
+  describe("CatalogService with report-derived signals", () => {
+    test("services with populated signals still filter, sort and aggregate correctly", () => {
+      const enriched: CatalogService = {
+        ...mockServices[0],
+        policyCompliance: { dev: { pass: 24, warn: 2, fail: 0, passPercent: 92 }, prod: null },
+        costPerMonth: { dev: { amount: 18.42, currency: "USD" }, prod: null },
+        deploymentHealth: {
+          dev: { syncStatus: "Synced", health: "Healthy", lastSyncAt: "2026-07-05T09:08:11Z" },
+          prod: null
+        },
+        api: {
+          title: "Service A",
+          version: "1.0.0",
+          endpoints: [{ method: "GET", path: "/health", summary: "Liveness probe" }]
+        }
+      };
+
+      const services = [enriched, mockServices[1]];
+      expect(filterServices(services, "service a")).toHaveLength(1);
+      expect(sortServices(services, "score")[0].id).toBe("service-a");
+      expect(computeStats(services).total).toBe(2);
+    });
+
+    test("services without report artifacts (older catalogs) remain valid and unaffected", () => {
+      // mockServices entries have no policyCompliance/costPerMonth/deploymentHealth/api
+      // fields at all — these must stay optional so older generated catalogs keep working.
+      expect(computeStats(mockServices).total).toBe(3);
     });
   });
 
