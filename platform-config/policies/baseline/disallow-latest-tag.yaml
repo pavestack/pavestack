@@ -1,0 +1,63 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: disallow-latest-tag
+  annotations:
+    policies.kyverno.io/title: Disallow Latest Image Tag
+    policies.kyverno.io/category: Best Practices
+    policies.kyverno.io/severity: medium
+    policies.kyverno.io/subject: Pod
+    policies.kyverno.io/description: >-
+      Images must carry an explicit, immutable tag so deployments are
+      reproducible and rollbacks are possible. The mutable `:latest` tag (or an
+      untagged image, which defaults to `:latest`) is forbidden.
+spec:
+  validationFailureAction: Audit
+  background: false
+  rules:
+    - name: require-image-tag
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+      exclude:
+        any:
+          - resources:
+              namespaces:
+                - kube-system
+                - kyverno
+                - argocd
+                - observability
+                - cert-manager
+                - external-secrets
+                - external-dns
+      validate:
+        message: "An explicit image tag is required."
+        pattern:
+          spec:
+            containers:
+              - image: "*:*"
+    - name: validate-image-tag
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+      exclude:
+        any:
+          - resources:
+              namespaces:
+                - kube-system
+                - kyverno
+                - argocd
+                - observability
+                - cert-manager
+                - external-secrets
+                - external-dns
+      validate:
+        message: "Using the mutable ':latest' image tag is disallowed."
+        pattern:
+          spec:
+            containers:
+              - image: "!*:latest"
