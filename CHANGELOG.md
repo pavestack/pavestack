@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.1.0](https://github.com/pavestack/pavestack/compare/v1.0.1...v1.1.0) (2026-07-07)
+
+
+### Features
+
+* add Azure multi-cloud infrastructure support ([#33](https://github.com/pavestack/pavestack/issues/33)) ([bebb539](https://github.com/pavestack/pavestack/commit/bebb53998e54b3593fb6d6ba207917af04b0a9b0))
+* integrate outstanding platform, API, and portal branches ([#35](https://github.com/pavestack/pavestack/issues/35)) ([91bd28c](https://github.com/pavestack/pavestack/commit/91bd28c08db630ab8f06ea7c8d92e67140a80d1e))
+
 ## [1.0.1](https://github.com/pavestack/pavestack/compare/v1.0.0...v1.0.1) (2026-07-04)
 
 
