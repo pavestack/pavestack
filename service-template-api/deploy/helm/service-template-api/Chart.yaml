@@ -2,5 +2,9 @@ apiVersion: v2
 name: service-template-api
 description: Pavestack golden-path API service Helm chart
 type: application
-version: 0.3.0
+# 0.2.0+: deploys as an Argo Rollouts canary (rollout.yaml) instead of a
+# plain apps/v1 Deployment - requires the argo-rollouts controller
+# (installed cluster-wide by platform-config/clusters/*/platform-addons.yaml).
+# See platform-config/GOLDEN_PATH_VERSIONING.md.
+version: 0.4.0
 appVersion: "0.1.0"

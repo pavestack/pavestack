@@ -1,0 +1,453 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Pavestack — Internal Developer Platform for self-service, GitOps-delivered services</title>
+<meta name="description" content="Pavestack is an open-source Internal Developer Platform. Scaffold a golden-path service with one CLI command, ship it through a pull request, and let Argo CD reconcile it onto EKS — no kubectl, no approval queue." />
+
+<link rel="icon" type="image/svg+xml" href="assets/brand/favicon.svg" />
+<link rel="alternate icon" href="data:image/x-icon;," />
+<meta name="theme-color" content="#0a0e14" />
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+<link rel="stylesheet" href="assets/brand/tokens.css" />
+<link rel="stylesheet" href="styles.css" />
+
+<script>
+  /* Set theme before first paint to avoid flash-of-wrong-theme. */
+  (function () {
+    try {
+      var stored = localStorage.getItem('pavestack-theme');
+      var theme = stored || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+      document.documentElement.setAttribute('data-theme', theme);
+    } catch (e) {}
+  })();
+</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="site-nav" id="top">
+  <div class="wrap nav-inner">
+    <a class="brand" href="#top" aria-label="Pavestack home">
+      <img class="brand-mark" src="assets/brand/mark.svg" alt="" width="32" height="32" />
+      <span class="brand-word">Pavestack</span>
+    </a>
+
+    <button class="nav-toggle" id="navToggle" type="button" aria-expanded="false" aria-controls="navMenu" aria-label="Toggle navigation menu">
+      <svg width="22" height="22" viewBox="0 0 22 22" fill="none" aria-hidden="true">
+        <path d="M3 6h16M3 11h16M3 16h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+      </svg>
+    </button>
+
+    <nav class="nav-menu" id="navMenu" aria-label="Primary">
+      <ul>
+        <li><a href="#what">What it does</a></li>
+        <li><a href="#golden-path">Golden path</a></li>
+        <li><a href="#architecture">Architecture</a></li>
+        <li><a href="#stack">Stack</a></li>
+        <li><a href="#why-gitops">Why GitOps</a></li>
+        <li><a href="#open-source">Open source</a></li>
+      </ul>
+
+      <div class="nav-actions">
+        <button class="theme-toggle" id="themeToggle" type="button" aria-label="Switch to light theme">
+          <svg class="icon-sun" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <circle cx="12" cy="12" r="4.2" stroke="currentColor" stroke-width="1.7" />
+            <path stroke="currentColor" stroke-width="1.7" stroke-linecap="round" d="M12 2.5v2.4M12 19.1v2.4M21.5 12h-2.4M4.9 12H2.5M18.4 5.6l-1.7 1.7M7.3 16.7l-1.7 1.7M18.4 18.4l-1.7-1.7M7.3 7.3 5.6 5.6" />
+          </svg>
+          <svg class="icon-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" d="M20 14.5A8.5 8.5 0 1 1 9.5 4a6.8 6.8 0 0 0 10.5 10.5Z" />
+          </svg>
+        </button>
+
+        <a class="btn btn-ghost" href="https://github.com/pavestack/pavestack" target="_blank" rel="noopener">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
+          GitHub
+        </a>
+        <a class="btn btn-primary" href="../app/">Launch Portal</a>
+      </div>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+
+  <!-- ============ HERO ============ -->
+  <section class="hero">
+    <div class="wrap hero-grid">
+      <div class="hero-copy">
+        <p class="eyebrow">Open-source Internal Developer Platform</p>
+        <h1>Provision internal services with a pull request — not a ticket.</h1>
+        <p class="hero-sub">
+          <code>pave create-service</code> scaffolds a golden-path Go API and writes the GitOps manifests for you.
+          CI builds, signs, and SBOMs the image; Argo CD reconciles it onto EKS the moment the PR merges.
+          No <code>kubectl apply</code> from a laptop, no platform-team approval queue for the standard path.
+        </p>
+        <div class="hero-ctas">
+          <a class="btn btn-primary btn-lg" href="https://github.com/pavestack/pavestack" target="_blank" rel="noopener">
+            <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
+            View on GitHub
+          </a>
+          <a class="btn btn-ghost btn-lg" href="../app/docs">Read the docs</a>
+        </div>
+        <ul class="hero-facts">
+          <li><span class="dot dot-teal"></span>Apache-2.0 licensed</li>
+          <li><span class="dot dot-amber"></span>GitOps-only cluster access</li>
+          <li><span class="dot dot-teal"></span>Zero standing kubectl credentials</li>
+        </ul>
+      </div>
+
+      <div class="hero-visual" aria-hidden="false">
+        <div class="terminal" role="img" aria-label="Terminal showing the pave create-service command scaffolding the payments service and opening a pull request">
+          <div class="terminal-bar">
+            <span class="dot-red"></span><span class="dot-yellow"></span><span class="dot-green"></span>
+            <span class="terminal-title">zsh — pavestack</span>
+          </div>
+          <pre class="terminal-body"><code><span class="t-muted">$</span> <span class="t-cmd">pave create-service</span> <span class="t-flag">--name</span> payments <span class="t-flag">--team</span> team-payments
+
+<span class="t-ok">✓</span> scaffolding golden-path Go API from <span class="t-path">service-template-api</span>
+<span class="t-ok">✓</span> writing <span class="t-path">services/payments-api/</span>
+<span class="t-ok">✓</span> writing <span class="t-path">platform-config/tenants/payments/</span>
+<span class="t-ok">✓</span> opening pull request
+
+  <span class="t-muted">→</span> <span class="t-url">github.com/pavestack/pavestack/pull/482</span>
+
+<span class="t-muted"># CI builds, signs (cosign), and SBOMs (syft) the image.
+# Merge the PR — Argo CD reconciles payments-api onto EKS.</span>
+<span class="t-cursor">▌</span></code></pre>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ WHAT IT DOES ============ -->
+  <section class="section" id="what">
+    <div class="wrap">
+      <header class="section-head">
+        <p class="eyebrow">What Pavestack does</p>
+        <h2>The paved road from idea to running service.</h2>
+      </header>
+
+      <div class="what-bento">
+        <article class="what-card what-card-lg">
+          <span class="what-index">01</span>
+          <h3>Self-service scaffolding</h3>
+          <p>
+            <code>pave create-service --name payments --team team-payments</code> clones the golden-path
+            Go API from <code>service-template-api</code>, renders the GitOps manifests into
+            <code>platform-config/tenants/payments/</code>, and opens the pull request — one command,
+            no scaffolding boilerplate written by hand, no waiting on a platform engineer to hand-roll it.
+          </p>
+          <div class="what-tree" aria-hidden="true">
+            <pre><code><span class="t-path">services/payments-api/</span>
+  cmd/, internal/, Dockerfile, otel.go
+
+<span class="t-path">platform-config/tenants/payments/</span>
+  ├─ application-set.yaml
+  ├─ namespace.yaml
+  ├─ network-policy.yaml
+  ├─ resource-quota.yaml
+  └─ kyverno-labels.yaml</code></pre>
+          </div>
+        </article>
+
+        <article class="what-card">
+          <span class="what-index">02</span>
+          <h3>GitOps delivery, not console access</h3>
+          <p>
+            CI builds the image, signs it with Cosign, and generates an SBOM with Syft before it ever reaches ECR.
+            Once the PR merges, an Argo CD <code>ApplicationSet</code> — one per tenant, never a hand-maintained
+            <code>Application</code> — reconciles the cluster to match git. Nobody runs <code>kubectl apply</code>.
+          </p>
+        </article>
+
+        <article class="what-card">
+          <span class="what-index">03</span>
+          <h3>Policy &amp; security by default</h3>
+          <p>
+            Every tenant namespace ships default-deny by <code>NetworkPolicy</code>, resource-quota'd, and
+            Kyverno-policed — no privileged containers, no <code>:latest</code> tags, mandatory labels and limits
+            enforced at admission, not in a review checklist. Cost-tagged for FinOps attribution from day one.
+          </p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ GOLDEN PATH DIAGRAM ============ -->
+  <section class="section section-alt" id="golden-path">
+    <div class="wrap">
+      <header class="section-head">
+        <p class="eyebrow">Golden path</p>
+        <h2>One command in, one running service out.</h2>
+        <p class="section-sub">Every service takes the identical path from a developer's terminal to a workload running in EKS — no bespoke exceptions.</p>
+        <p class="scroll-hint" aria-hidden="true">Scroll to see the full pipeline →</p>
+      </header>
+
+      <div class="diagram-wrap pipeline-scroll">
+        <svg class="diagram diagram-pipeline" viewBox="0 0 1240 240" role="img" aria-labelledby="pipelineTitle pipelineDesc" xmlns="http://www.w3.org/2000/svg">
+          <title id="pipelineTitle">Golden path pipeline</title>
+          <desc id="pipelineDesc">Developer runs the pave CLI, which opens a Pull Request. CI builds, scans, and signs the image. Argo CD reconciles the change, producing a running service in EKS.</desc>
+          <defs>
+            <marker id="arrowhead" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M0 0 L10 5 L0 10 Z" fill="var(--brand-amber)" />
+            </marker>
+          </defs>
+
+          <!-- connectors -->
+          <g stroke="var(--brand-amber)" stroke-width="2.5" fill="none" marker-end="url(#arrowhead)">
+            <path d="M220 120 H244" />
+            <path d="M412 120 H436" />
+            <path d="M604 120 H628" />
+            <path d="M796 120 H820" />
+            <path d="M988 120 H1012" />
+          </g>
+
+          <!-- Node 1: Developer -->
+          <g transform="translate(60,55)">
+            <rect width="160" height="130" rx="14" class="node-box" />
+            <g transform="translate(80,44)" stroke="var(--accent)" stroke-width="2.2" fill="none" stroke-linecap="round">
+              <circle cx="0" cy="-10" r="9" />
+              <path d="M-16 20 a16 16 0 0 1 32 0" />
+            </g>
+            <text x="80" y="96" class="node-label">Developer</text>
+            <text x="80" y="114" class="node-sub">writes a request</text>
+          </g>
+
+          <!-- Node 2: pave CLI -->
+          <g transform="translate(252,55)">
+            <rect width="160" height="130" rx="14" class="node-box" />
+            <g transform="translate(80,44)" stroke="var(--accent)" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="-24" y="-16" width="48" height="32" rx="4" />
+              <path d="M-15 -6 L-6 0 L-15 6 M-1 6 H10" />
+            </g>
+            <text x="80" y="96" class="node-label">pave CLI</text>
+            <text x="80" y="114" class="node-sub">scaffolds service</text>
+          </g>
+
+          <!-- Node 3: Pull Request -->
+          <g transform="translate(444,55)">
+            <rect width="160" height="130" rx="14" class="node-box" />
+            <g transform="translate(80,44)" stroke="var(--accent)" stroke-width="2.2" fill="none" stroke-linecap="round">
+              <circle cx="-14" cy="-14" r="5" />
+              <circle cx="-14" cy="14" r="5" />
+              <circle cx="14" cy="-14" r="5" />
+              <path d="M-14 9 V-9 M-9 -14 H9" />
+            </g>
+            <text x="80" y="96" class="node-label">Pull Request</text>
+            <text x="80" y="114" class="node-sub">platform-config</text>
+          </g>
+
+          <!-- Node 4: CI -->
+          <g transform="translate(636,55)">
+            <rect width="160" height="130" rx="14" class="node-box" />
+            <g transform="translate(80,44)" stroke="var(--accent)" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M0 -17 L14 -8 V10 L0 19 L-14 10 V-8 Z" />
+              <path d="M-6 1 L-1 7 L8 -6" />
+            </g>
+            <text x="80" y="96" class="node-label">CI</text>
+            <text x="80" y="114" class="node-sub">build · scan · sign</text>
+          </g>
+
+          <!-- Node 5: Argo CD -->
+          <g transform="translate(828,55)">
+            <rect width="160" height="130" rx="14" class="node-box" />
+            <g transform="translate(80,44)" stroke="var(--accent)" stroke-width="2.2" fill="none" stroke-linecap="round">
+              <path d="M-14 -2 A14 14 0 1 1 -12 8" />
+              <path d="M-19 -8 L-14 -2 L-8 -7" />
+            </g>
+            <text x="80" y="96" class="node-label">Argo CD</text>
+            <text x="80" y="114" class="node-sub">reconciles cluster</text>
+          </g>
+
+          <!-- Node 6: Running Service -->
+          <g transform="translate(1020,55)">
+            <rect width="160" height="130" rx="14" class="node-box node-box-highlight" />
+            <g transform="translate(80,42)" stroke="var(--brand-amber)" stroke-width="2.2" fill="none" stroke-linejoin="round">
+              <path d="M0 -18 L15 -9 V9 L0 18 L-15 9 V-9 Z" />
+              <circle cx="0" cy="0" r="4" fill="var(--brand-amber)" stroke="none" />
+            </g>
+            <text x="80" y="96" class="node-label">Running Service</text>
+            <text x="80" y="114" class="node-sub">on EKS</text>
+          </g>
+        </svg>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ ARCHITECTURE ============ -->
+  <section class="section" id="architecture">
+    <div class="wrap arch-grid">
+      <header class="section-head">
+        <p class="eyebrow">Architecture</p>
+        <h2>Layers, not a monolith.</h2>
+        <p class="section-sub">
+          Platform infrastructure is provisioned once. GitOps config reconciles many tenants on top of it.
+          Observability and policy wrap every layer instead of bolting onto one.
+        </p>
+      </header>
+
+      <div class="diagram-wrap">
+        <svg class="diagram diagram-arch" viewBox="0 0 880 600" role="img" aria-labelledby="archTitle archDesc" xmlns="http://www.w3.org/2000/svg">
+          <title id="archTitle">Layered architecture diagram</title>
+          <desc id="archDesc">platform-infra provisions VPC, EKS, ECR and OIDC. platform-config's Argo CD ApplicationSets reconcile tenants on top of it, producing running services. OpenTelemetry observability and Kyverno/NetworkPolicy security wrap all layers, with FinOps cost attribution at the base.</desc>
+
+          <defs>
+            <marker id="arrowhead-v" viewBox="0 0 10 10" refX="5" refY="8" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M0 0 L10 0 L5 10 Z" fill="var(--brand-amber)" />
+            </marker>
+          </defs>
+
+          <rect x="16" y="16" width="848" height="568" rx="28" class="envelope" />
+          <rect x="48" y="42" width="784" height="52" rx="10" class="band-box" />
+          <text x="440" y="73" class="band-label">OpenTelemetry — traces · metrics · logs, correlated by trace ID</text>
+
+          <line x1="440" y1="94" x2="440" y2="150" stroke="var(--brand-amber)" stroke-width="2.5" marker-end="url(#arrowhead-v)" />
+
+          <g>
+            <rect x="160" y="152" width="560" height="96" rx="14" class="node-box" />
+            <text x="440" y="188" class="node-label node-label-lg">platform-infra</text>
+            <text x="440" y="212" class="node-sub">Terraform — VPC · EKS · ECR · GitHub OIDC</text>
+          </g>
+
+          <line x1="440" y1="248" x2="440" y2="298" stroke="var(--brand-amber)" stroke-width="2.5" marker-end="url(#arrowhead-v)" />
+
+          <g>
+            <rect x="160" y="300" width="560" height="96" rx="14" class="node-box" />
+            <text x="440" y="336" class="node-label node-label-lg">platform-config</text>
+            <text x="440" y="360" class="node-sub">Argo CD ApplicationSets — one per tenant/&lt;name&gt;</text>
+          </g>
+
+          <line x1="440" y1="396" x2="440" y2="446" stroke="var(--brand-amber)" stroke-width="2.5" marker-end="url(#arrowhead-v)" />
+
+          <g>
+            <rect x="160" y="448" width="560" height="96" rx="14" class="node-box node-box-highlight" />
+            <text x="440" y="484" class="node-label node-label-lg">Running services</text>
+            <text x="440" y="508" class="node-sub">EKS tenant namespaces — quota'd · isolated</text>
+          </g>
+        </svg>
+        <div class="arch-footnote">
+          <span class="pill"><span class="dot dot-teal"></span>Kyverno — no privileged containers, no <code>:latest</code>, mandatory labels &amp; limits</span>
+          <span class="pill"><span class="dot dot-amber"></span>Default-deny NetworkPolicy per tenant namespace</span>
+          <span class="pill"><span class="dot dot-teal"></span>FinOps cost attribution via mandatory cost tags</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ STACK ============ -->
+  <section class="section section-alt" id="stack">
+    <div class="wrap">
+      <header class="section-head">
+        <p class="eyebrow">Built with</p>
+        <h2>A stack chosen for platform teams, not a resume.</h2>
+      </header>
+
+      <ul class="stack-list">
+        <li><span class="stack-dot"></span>Go</li>
+        <li><span class="stack-dot"></span>TypeScript / React</li>
+        <li><span class="stack-dot"></span>Terraform</li>
+        <li><span class="stack-dot"></span>Kubernetes</li>
+        <li><span class="stack-dot"></span>Argo CD</li>
+        <li><span class="stack-dot"></span>Docker</li>
+        <li><span class="stack-dot"></span>AWS</li>
+        <li><span class="stack-dot"></span>GitHub Actions</li>
+        <li><span class="stack-dot"></span>OpenTelemetry</li>
+        <li><span class="stack-dot"></span>Kyverno</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ============ WHY GITOPS ============ -->
+  <section class="section" id="why-gitops">
+    <div class="wrap">
+      <header class="section-head">
+        <p class="eyebrow">Why GitOps</p>
+        <h2>The cluster only ever matches what's in git.</h2>
+        <p class="section-sub">Not a philosophy — a concrete difference in who can touch production and how you find out what happened.</p>
+      </header>
+
+      <div class="compare">
+        <div class="compare-col compare-before">
+          <h3><span class="compare-tag compare-tag-bad">Before</span> kubectl apply, from a laptop</h3>
+          <ul>
+            <li>Whoever has the kubeconfig can change production, right now, unreviewed.</li>
+            <li>"What changed?" means grepping shell history and Slack threads.</li>
+            <li>Drift between what's running and what's documented is discovered by incident.</li>
+            <li>Rollback means someone remembers the previous flags and re-runs the command by hand.</li>
+          </ul>
+        </div>
+        <div class="compare-col compare-after">
+          <h3><span class="compare-tag compare-tag-good">After</span> PR merges, Argo CD reconciles</h3>
+          <ul>
+            <li>No standing cluster credentials to leak, share, or rotate — access is a pull request, reviewed like code.</li>
+            <li>Every change to production has an author, a diff, and an approval in git history.</li>
+            <li>Argo CD continuously diffs live state against git and self-heals drift automatically.</li>
+            <li>Rollback is <code>git revert</code> — Argo CD reconciles the cluster back, no tribal knowledge required.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ OPEN SOURCE CTA ============ -->
+  <section class="section section-cta" id="open-source">
+    <div class="wrap cta-inner">
+      <div class="cta-copy">
+        <p class="eyebrow">Open source</p>
+        <h2>Apache-2.0. Built in the open. Run it on your own cluster.</h2>
+        <p class="section-sub">
+          Pavestack is not a hosted product with a proprietary control plane — it's a monorepo you fork,
+          adapt to your org's Terraform conventions, and operate yourself. Issues and pull requests are welcome,
+          especially around new golden-path templates and additional Argo Rollouts analysis providers.
+        </p>
+        <div class="hero-ctas">
+          <a class="btn btn-primary btn-lg" href="https://github.com/pavestack/pavestack" target="_blank" rel="noopener">Star on GitHub</a>
+          <a class="btn btn-ghost btn-lg" href="https://github.com/pavestack/pavestack/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener">Contributing guide</a>
+        </div>
+      </div>
+      <div class="cta-stats">
+        <a class="stat-chip" href="https://github.com/pavestack/pavestack/stargazers" target="_blank" rel="noopener">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 2.8 14.7 9l6.8.6-5.2 4.5 1.6 6.6L12 17.3 6.1 20.7l1.6-6.6L2.5 9.6 9.3 9Z" stroke="var(--brand-amber)" stroke-width="1.6" stroke-linejoin="round"/></svg>
+          Star the repo
+        </a>
+        <a class="stat-chip" href="https://github.com/pavestack/pavestack/fork" target="_blank" rel="noopener">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="6" cy="6" r="2.4" stroke="var(--brand-teal)" stroke-width="1.6"/><circle cx="18" cy="6" r="2.4" stroke="var(--brand-teal)" stroke-width="1.6"/><circle cx="12" cy="18" r="2.4" stroke="var(--brand-teal)" stroke-width="1.6"/><path d="M6 8.4V11a3 3 0 0 0 3 3h1M18 8.4V11a3 3 0 0 0-3 3h-1M12 14v1.6" stroke="var(--brand-teal)" stroke-width="1.6"/></svg>
+          Fork it
+        </a>
+        <span class="license-chip">License · Apache-2.0</span>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-brand">
+      <svg class="brand-mark footer-mark" width="24" height="24" viewBox="0 0 64 64" aria-hidden="true">
+        <path d="M32 4 L57 18 L57 46 L32 60 L7 46 L7 18 Z" fill="none" stroke="currentColor" stroke-width="5" stroke-linejoin="round"/>
+        <path d="M23 20 L40 32 L23 44" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" opacity="0.55"/>
+      </svg>
+      <div>
+        <p class="footer-word">Pavestack</p>
+        <p class="footer-tagline">The paved road for internal API services — self-service, GitOps-only, policy-enforced.</p>
+      </div>
+    </div>
+    <nav class="footer-links" aria-label="Footer">
+      <a href="https://github.com/pavestack/pavestack" target="_blank" rel="noopener">GitHub</a>
+      <a href="../app/docs">Docs</a>
+      <a href="https://github.com/pavestack/pavestack/blob/main/LICENSE" target="_blank" rel="noopener">Apache-2.0 License</a>
+    </nav>
+    <p class="footer-copy">&copy; 2026 The Pavestack Authors.</p>
+  </div>
+</footer>
+
+<script src="script.js"></script>
+</body>
+</html>

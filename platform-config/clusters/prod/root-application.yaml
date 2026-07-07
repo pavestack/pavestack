@@ -16,7 +16,7 @@ spec:
     path: platform-config/clusters/prod
     directory:
       recurse: true
-      include: "{project-pavestack.yaml,applicationset-*.yaml,application-*.yaml}"
+      include: "{project-pavestack.yaml,applicationset-*.yaml,application-*.yaml,platform-addons.yaml}"
   syncPolicy:
     automated:
       prune: true

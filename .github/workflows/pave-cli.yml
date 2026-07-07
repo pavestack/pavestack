@@ -31,8 +31,21 @@ jobs:
       - name: Download modules
         run: go mod download
 
-      - name: Unit tests
-        run: go test ./...
+      - name: Vet
+        run: go vet ./...
+
+      - name: Format check
+        run: test -z "$(gofmt -l .)" || (gofmt -d . && exit 1)
+
+      - name: Unit tests with coverage
+        run: |
+          go test -coverprofile=coverage.out ./...
+          go tool cover -func=coverage.out | tail -1
+          COVERAGE=$(go tool cover -func=coverage.out | tail -1 | awk '{print $NF}' | tr -d '%')
+          # Floor, not a target - a few points below the ~68% baseline at the
+          # time this was added, so it fails on a real regression, not noise.
+          awk -v cov="$COVERAGE" 'BEGIN { exit !(cov >= 60) }' \
+            || (echo "Coverage ${COVERAGE}% is below the 60% floor" && exit 1)
 
 
       - name: Trivy filesystem scan
@@ -49,3 +62,17 @@ jobs:
           directory: pave
           quiet: true
           config_file: .checkov.yaml
+
+      # pave-api isn't deployed anywhere yet (no platform-config/tenants/pave-api),
+      # so there's no registry to push to or GitOps promotion to open - this
+      # just proves the Dockerfile builds and the resulting image is clean.
+      # See pave/Dockerfile's own comment for why it ships without git/gh.
+      - name: Build pave-api image
+        run: docker build -t pave-api:ci -f Dockerfile .
+
+      - name: Trivy image scan
+        uses: aquasecurity/trivy-action@cf5c088a69634cd13ccddc735d7926162c31f9a6 # master
+        with:
+          image-ref: pave-api:ci
+          severity: CRITICAL,HIGH
+          exit-code: 1

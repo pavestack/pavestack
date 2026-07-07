@@ -4,11 +4,13 @@
 
 # Go
 vendor/
+**/coverage.out
 
 # Node
 **/node_modules/
 **/.next/
 **/out/
+pavestack-portal/coverage/
 pavestack-portal/public/catalog.json
 
 # Terraform
@@ -30,3 +32,6 @@ pavestack-portal/public/catalog.json
 
 # Generated services (optional — remove if committing scaffolds)
 # services/*/
+
+# pave-api runtime state (access-requests.json etc.) — never committed
+.pave-api/

@@ -6,8 +6,9 @@ First off, thank you for considering contributing to Pavestack!
 
 1. Fork the repository and create your feature branch from `main`.
 2. Make your changes, following the architectural guidelines (all code must be production-aligned).
-3. Ensure you have run `make test`, `make lint`, and `make fmt` locally.
-4. Open a Pull Request detailing your changes.
+3. Install the pre-commit hooks once per clone: `pip install pre-commit && pre-commit install`. This runs `make fmt`, `make lint`, and `make test` automatically before each commit, plus basic file hygiene checks (trailing whitespace, large files, YAML validity).
+4. Ensure you have run `make test`, `make lint`, and `make fmt` locally (pre-commit does this for you, but CI enforces it either way).
+5. Open a Pull Request detailing your changes.
 
 ## Development Workflow
 

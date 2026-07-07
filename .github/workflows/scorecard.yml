@@ -1,0 +1,49 @@
+name: OSSF Scorecard
+
+on:
+  branch_protection_rule:
+  schedule:
+    - cron: "30 2 * * 1"
+  push:
+    branches: ["main"]
+
+permissions: read-all
+
+jobs:
+  analysis:
+    name: Scorecard analysis
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      id-token: write
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        with:
+          persist-credentials: false
+
+      # Pinned by version tag pending dependabot's first github-actions
+      # bump for this newly-added action - see the "action pinning" note
+      # in AGENTS.md.
+      - name: Run OSSF Scorecard
+        uses: ossf/scorecard-action@v2.4.3
+        with:
+          results_file: results.sarif
+          results_format: sarif
+          publish_results: true
+
+      # Pinned by version tag pending dependabot's first github-actions
+      # bump for this newly-added action - see the "action pinning" note
+      # in AGENTS.md.
+      - name: Upload Scorecard results as an artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SARIF file
+          path: results.sarif
+          retention-days: 5
+
+      - name: Upload results to code scanning
+        uses: github/codeql-action/upload-sarif@8aad20d150bbac5944a9f9d289da16a4b0d87c1e # v4.36.2
+        with:
+          sarif_file: results.sarif

@@ -1,11 +1,15 @@
 locals {
   name = "${var.name_prefix}-${var.environment}"
 
+  # Cost-attribution tag set - see envs/dev/main.tf and AGENTS.md
+  # "cost-tagging convention" for the full rationale.
   tags = {
     Project     = "pavestack"
     Repository  = "platform-infra"
     Environment = var.environment
     ManagedBy   = "terraform"
+    CostCenter  = var.cost_center
+    Team        = var.team
   }
 
   github_actions_role_arns = var.enable_github_oidc_role ? [module.github_oidc[0].role_arn] : []

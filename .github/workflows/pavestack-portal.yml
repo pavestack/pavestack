@@ -32,6 +32,15 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Format check
+        run: npm run format:check
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Unit tests with coverage
+        run: npm run test:coverage
+
       - name: Generate catalog
         run: npm run generate-catalog
 
@@ -52,4 +61,4 @@ jobs:
         with:
           directory: pavestack-portal
           quiet: true
-          soft_fail: true
+          config_file: .checkov.yaml
