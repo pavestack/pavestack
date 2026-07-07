@@ -57,6 +57,13 @@ jobs:
           quiet: true
           config_file: .checkov.yaml
 
+      - name: Generate source SBOM
+        uses: anchore/sbom-action@v0 # TODO: pin to commit SHA
+        with:
+          path: service-template-api
+          format: spdx-json
+          artifact-name: sbom-source.spdx.json
+
   build-push-pr:
     needs: test-scan
     if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && vars.AWS_ROLE_ARN != '' && vars.ENABLE_AWS_DEPLOY == 'true'
@@ -105,6 +112,12 @@ jobs:
           image-ref: ${{ env.IMAGE }}
           severity: CRITICAL,HIGH
           exit-code: 1
+
+      - name: Generate image SBOM
+        uses: anchore/sbom-action@v0 # TODO: pin to commit SHA
+        with:
+          image: ${{ env.IMAGE }}
+          artifact-name: sbom-image.spdx.json
 
       - name: Update platform-config image tag
         env:
