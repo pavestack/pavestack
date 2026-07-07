@@ -14,8 +14,25 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
+      actions: write
     steps:
-      - uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
+      - id: release
+        uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
         with:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
+
+      # The release PR's branch is pushed with GITHUB_TOKEN, which never
+      # triggers workflows on its own, so the required trivy-repo and
+      # checkov-repo contexts would stay "expected" forever and block the
+      # merge. Explicit API dispatches with GITHUB_TOKEN *are* allowed to
+      # start workflows, so kick the security scan for the release branch
+      # whenever release-please created or updated its PR.
+      - name: Run required checks on the release PR
+        if: ${{ steps.release.outputs.prs_created == 'true' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh workflow run monorepo-security.yml \
+            --repo "$GITHUB_REPOSITORY" \
+            --ref release-please--branches--main
