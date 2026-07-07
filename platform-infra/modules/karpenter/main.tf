@@ -403,18 +403,20 @@ resource "aws_cloudwatch_event_target" "scheduled_change" {
 # Discovery tagging (EC2NodeClass subnet/securityGroupSelectorTerms)
 # ---------------------------------------------------------------------------
 
+# count (not for_each) so computed IDs from the vpc/eks modules stay plannable:
+# the list length is known at plan time even when the IDs themselves are not.
 resource "aws_ec2_tag" "discovery_subnet" {
-  for_each = toset(var.discovery_subnet_ids)
+  count = length(var.discovery_subnet_ids)
 
-  resource_id = each.value
+  resource_id = var.discovery_subnet_ids[count.index]
   key         = "karpenter.sh/discovery"
   value       = var.cluster_name
 }
 
 resource "aws_ec2_tag" "discovery_security_group" {
-  for_each = toset(var.discovery_security_group_ids)
+  count = length(var.discovery_security_group_ids)
 
-  resource_id = each.value
+  resource_id = var.discovery_security_group_ids[count.index]
   key         = "karpenter.sh/discovery"
   value       = var.cluster_name
 }

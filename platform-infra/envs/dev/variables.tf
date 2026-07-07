@@ -79,3 +79,15 @@ variable "alert_webhook_url" {
   default     = ""
   sensitive   = true
 }
+
+variable "monthly_budget_amount" {
+  description = "Monthly AWS cost budget in USD for this environment (string, per aws_budgets_budget)."
+  type        = string
+  default     = "100"
+}
+
+variable "budget_notification_emails" {
+  description = "Email addresses subscribed to budget alert notifications."
+  type        = list(string)
+  default     = []
+}

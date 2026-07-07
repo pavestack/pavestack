@@ -117,3 +117,46 @@ module "policy" {
 
   depends_on = [module.eks]
 }
+
+module "karpenter" {
+  source = "../../modules/karpenter"
+
+  cluster_name      = module.eks.cluster_name
+  cluster_endpoint  = module.eks.cluster_endpoint
+  region            = var.aws_region
+  oidc_provider_arn = module.eks.oidc_provider_arn
+  oidc_issuer_url   = module.eks.cluster_oidc_issuer_url
+
+  discovery_subnet_ids         = module.vpc.private_subnet_ids
+  discovery_security_group_ids = [module.eks.cluster_security_group_id]
+  tags                         = local.tags
+
+  depends_on = [module.eks]
+}
+
+module "finops" {
+  source = "../../modules/finops"
+
+  cluster_name               = module.eks.cluster_name
+  prometheus_service_name    = "kube-prometheus-stack-prometheus"
+  prometheus_namespace       = module.observability.namespace
+  monthly_budget_amount      = var.monthly_budget_amount
+  budget_notification_emails = var.budget_notification_emails
+  tags                       = local.tags
+
+  depends_on = [module.observability]
+}
+
+module "backup" {
+  source = "../../modules/backup"
+
+  cluster_name      = module.eks.cluster_name
+  region            = var.aws_region
+  oidc_provider_arn = module.eks.oidc_provider_arn
+  oidc_issuer_url   = module.eks.cluster_oidc_issuer_url
+  # Short retention in dev; restores are drilled here, not archived.
+  backup_retention_days = 30
+  tags                  = local.tags
+
+  depends_on = [module.eks]
+}

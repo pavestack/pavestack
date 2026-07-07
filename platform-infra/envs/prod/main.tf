@@ -50,10 +50,12 @@ module "eks" {
   private_subnet_ids      = module.vpc.private_subnet_ids
   endpoint_public_access  = true
   endpoint_private_access = true
-  node_instance_types     = ["m6i.large"]
-  node_desired_size       = 3
-  node_min_size           = 3
-  node_max_size           = 6
+  # Minimal static "system" pool: runs Karpenter and other bootstrap-tier
+  # controllers; workload capacity is provisioned by Karpenter NodePools.
+  node_instance_types = ["m6i.large"]
+  node_desired_size   = 2
+  node_min_size       = 2
+  node_max_size       = 3
   platform_admin_role_arns = setunion(
     var.platform_admin_role_arns,
     toset(local.github_actions_role_arns)
@@ -123,6 +125,49 @@ module "policy" {
       }
     })
   ]
+
+  depends_on = [module.eks]
+}
+
+module "karpenter" {
+  source = "../../modules/karpenter"
+
+  cluster_name      = module.eks.cluster_name
+  cluster_endpoint  = module.eks.cluster_endpoint
+  region            = var.aws_region
+  oidc_provider_arn = module.eks.oidc_provider_arn
+  oidc_issuer_url   = module.eks.cluster_oidc_issuer_url
+
+  discovery_subnet_ids         = module.vpc.private_subnet_ids
+  discovery_security_group_ids = [module.eks.cluster_security_group_id]
+  tags                         = local.tags
+
+  depends_on = [module.eks]
+}
+
+module "finops" {
+  source = "../../modules/finops"
+
+  cluster_name               = module.eks.cluster_name
+  prometheus_service_name    = "kube-prometheus-stack-prometheus"
+  prometheus_namespace       = module.observability.namespace
+  monthly_budget_amount      = var.monthly_budget_amount
+  budget_notification_emails = var.budget_notification_emails
+  tags                       = local.tags
+
+  depends_on = [module.observability]
+}
+
+module "backup" {
+  source = "../../modules/backup"
+
+  cluster_name      = module.eks.cluster_name
+  region            = var.aws_region
+  oidc_provider_arn = module.eks.oidc_provider_arn
+  oidc_issuer_url   = module.eks.cluster_oidc_issuer_url
+  # Prod keeps backups for a full quarter.
+  backup_retention_days = 90
+  tags                  = local.tags
 
   depends_on = [module.eks]
 }

@@ -382,6 +382,19 @@ provider "aws" {
 		"module.secrets.aws_iam_role.external_secrets",
 		// Kyverno policy admission controller
 		"module.policy.helm_release.kyverno",
+		// Karpenter: controller release, node role and interruption queue
+		"module.karpenter.helm_release.karpenter",
+		"module.karpenter.aws_iam_role.node",
+		"module.karpenter.aws_iam_role.controller",
+		"module.karpenter.aws_sqs_queue.interruption",
+		// FinOps: OpenCost + monthly budget with SNS alerting
+		"module.finops.helm_release.opencost",
+		"module.finops.aws_budgets_budget.monthly",
+		"module.finops.aws_sns_topic.budget_alerts",
+		// Backup: Velero release, backup bucket and IRSA role
+		"module.backup.helm_release.velero",
+		"module.backup.aws_s3_bucket.velero",
+		"module.backup.aws_iam_role.velero",
 	}
 	for _, resAddr := range expectedResources {
 		if _, found := findResourceInRoot(plan, resAddr); !found {
@@ -397,5 +410,5 @@ func TestDevEnvironment(t *testing.T) {
 }
 
 func TestProdEnvironment(t *testing.T) {
-	testEnvironment(t, "prod", "10.30.0.0/16", "m6i.large", 3, 90)
+	testEnvironment(t, "prod", "10.30.0.0/16", "m6i.large", 2, 90)
 }
