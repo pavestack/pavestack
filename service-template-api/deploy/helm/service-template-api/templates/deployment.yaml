@@ -35,6 +35,10 @@ spec:
             - name: {{ $key }}
               value: {{ $value | quote }}
             {{- end }}
+            {{- if .Values.otel.enabled }}
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: {{ .Values.otel.exporterEndpoint | quote }}
+            {{- end }}
           livenessProbe:
             httpGet:
               path: {{ .Values.livenessProbe.path }}

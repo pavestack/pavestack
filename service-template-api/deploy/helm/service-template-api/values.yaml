@@ -37,6 +37,13 @@ env:
   LISTEN_ADDR: ":8080"
   SERVICE_NAME: service-template-api
 
+# OpenTelemetry tracing. When enabled, OTEL_EXPORTER_OTLP_ENDPOINT is injected
+# into the container and traces are exported to Tempo (OTLP/HTTP). The service
+# name reported in traces comes from the SERVICE_NAME env var above.
+otel:
+  enabled: true
+  exporterEndpoint: http://tempo.observability.svc.cluster.local:4318
+
 podSecurityContext:
   runAsNonRoot: true
   runAsUser: 65532
@@ -53,3 +60,21 @@ securityContext:
 
 networkPolicy:
   enabled: true
+
+# Opt-in ingress. Disabled by default; the service is reachable in-cluster via
+# the Service. When enabled with className "alb", the AWS Load Balancer Controller
+# provisions an ALB. Recommended annotations (set under ingress.annotations):
+#   alb.ingress.kubernetes.io/scheme: internet-facing
+#   alb.ingress.kubernetes.io/target-type: ip
+#   alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
+#   cert-manager.io/cluster-issuer: letsencrypt
+#   external-dns.alpha.kubernetes.io/hostname: <host>
+ingress:
+  enabled: false
+  className: alb
+  host: ""
+  annotations: {}
+  # tls is a list of networking.k8s.io/v1 IngressTLS entries, e.g.:
+  #   - hosts: ["api.example.com"]
+  #     secretName: service-template-api-tls
+  tls: []

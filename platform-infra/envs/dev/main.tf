@@ -14,11 +14,12 @@ locals {
 module "vpc" {
   source = "../../modules/vpc"
 
-  name               = local.name
-  vpc_cidr           = var.vpc_cidr
-  az_count           = 2
-  single_nat_gateway = true
-  tags               = local.tags
+  name                    = local.name
+  vpc_cidr                = var.vpc_cidr
+  az_count                = 2
+  single_nat_gateway      = true
+  flow_log_retention_days = 14
+  tags                    = local.tags
 }
 
 module "ecr" {
@@ -64,6 +65,35 @@ module "argocd" {
   source = "../../modules/argocd-bootstrap"
 
   chart_version = "9.5.17"
+
+  depends_on = [module.eks]
+}
+
+module "observability" {
+  source = "../../modules/observability"
+
+  prometheus_storage_size = "10Gi"
+  prometheus_retention    = "7d"
+  alert_webhook_url       = var.alert_webhook_url
+
+  depends_on = [module.eks]
+}
+
+module "ingress" {
+  source = "../../modules/ingress"
+
+  cluster_name      = module.eks.cluster_name
+  region            = var.aws_region
+  vpc_id            = module.vpc.vpc_id
+  oidc_provider_arn = module.eks.oidc_provider_arn
+  oidc_issuer_url   = module.eks.cluster_oidc_issuer_url
+  route53_zone_id   = var.route53_zone_id
+  domain_filter     = var.platform_domain
+  # external-dns needs a real hosted zone; its IAM policy scopes to route53_zone_id
+  # and an empty zone id would produce a broken (but plannable) role. Gate it on a
+  # zone id being provided. Real deployments set route53_zone_id via tfvars.
+  enable_external_dns = var.route53_zone_id != ""
+  tags                = local.tags
 
   depends_on = [module.eks]
 }

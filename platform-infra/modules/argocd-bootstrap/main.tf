@@ -18,6 +18,30 @@ resource "helm_release" "argocd" {
         service = {
           type = "ClusterIP"
         }
+        metrics = {
+          enabled = true
+          serviceMonitor = {
+            enabled = true
+          }
+        }
+      }
+      # Expose Prometheus metrics + ServiceMonitors so the observability module's
+      # Argo CD alert rules (which query argocd_app_info) have something to scrape.
+      controller = {
+        metrics = {
+          enabled = true
+          serviceMonitor = {
+            enabled = true
+          }
+        }
+      }
+      repoServer = {
+        metrics = {
+          enabled = true
+          serviceMonitor = {
+            enabled = true
+          }
+        }
       }
       configs = {
         params = {
