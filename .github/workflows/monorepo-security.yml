@@ -6,6 +6,10 @@ on:
     branches: ["main"]
   schedule:
     - cron: "0 6 * * 1"
+  # Dispatched by release-please.yml against the release branch: pushes made
+  # with GITHUB_TOKEN never trigger workflows, so the required trivy-repo and
+  # checkov-repo contexts would otherwise never report on release PRs.
+  workflow_dispatch:
 
 permissions:
   contents: read
