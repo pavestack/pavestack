@@ -39,6 +39,11 @@ spec:
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
               value: {{ .Values.otel.exporterEndpoint | quote }}
             {{- end }}
+          {{- if and .Values.secrets.externalSecret.enabled .Values.secrets.envFrom }}
+          envFrom:
+            - secretRef:
+                name: {{ include "service-template-api.fullname" . }}
+          {{- end }}
           livenessProbe:
             httpGet:
               path: {{ .Values.livenessProbe.path }}

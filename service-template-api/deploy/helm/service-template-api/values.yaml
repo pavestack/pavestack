@@ -58,6 +58,21 @@ securityContext:
   capabilities:
     drop: ["ALL"]
 
+# Optional secrets integration via the External Secrets Operator (see
+# platform-infra/modules/secrets and platform-config/templates/external-secret).
+# When enabled, a per-release ExternalSecret pulls key/value pairs from a
+# Secrets Manager secret (following the pavestack/<tenant>/<name> convention)
+# into a Kubernetes Secret named <fullname>, which the aws-secrets-manager
+# ClusterSecretStore must already exist to satisfy.
+secrets:
+  externalSecret:
+    enabled: false
+    # Secrets Manager key to sync, e.g. pavestack/acme/service-template-api.
+    key: ""
+  # When true (and secrets.externalSecret.enabled is true), the container
+  # loads every key in the rendered Secret via envFrom.secretRef.
+  envFrom: true
+
 networkPolicy:
   enabled: true
 
