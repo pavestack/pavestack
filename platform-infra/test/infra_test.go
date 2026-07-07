@@ -377,6 +377,11 @@ provider "aws" {
 		// gated on route53_zone_id, which is empty in plan-only test runs)
 		"module.ingress.helm_release.aws_load_balancer_controller[0]",
 		"module.ingress.aws_iam_role.aws_load_balancer_controller[0]",
+		// External Secrets Operator + its IRSA role
+		"module.secrets.helm_release.external_secrets",
+		"module.secrets.aws_iam_role.external_secrets",
+		// Kyverno policy admission controller
+		"module.policy.helm_release.kyverno",
 	}
 	for _, resAddr := range expectedResources {
 		if _, found := findResourceInRoot(plan, resAddr); !found {

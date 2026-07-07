@@ -82,3 +82,18 @@ output "aws_load_balancer_controller_role_arn" {
   description = "IAM role ARN assumed by the AWS Load Balancer Controller."
   value       = module.ingress.aws_load_balancer_controller_role_arn
 }
+
+output "external_secrets_role_arn" {
+  description = "IAM role ARN assumed by the External Secrets Operator controller's service account."
+  value       = module.secrets.external_secrets_role_arn
+}
+
+output "external_secrets_namespace" {
+  description = "Namespace the External Secrets Operator is installed into."
+  value       = module.secrets.external_secrets_namespace
+}
+
+output "kyverno_namespace" {
+  description = "Namespace the Kyverno admission controller is installed into."
+  value       = module.policy.namespace
+}

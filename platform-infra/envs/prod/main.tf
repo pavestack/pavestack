@@ -97,3 +97,32 @@ module "ingress" {
 
   depends_on = [module.eks]
 }
+
+module "secrets" {
+  source = "../../modules/secrets"
+
+  cluster_name      = module.eks.cluster_name
+  region            = var.aws_region
+  oidc_provider_arn = module.eks.oidc_provider_arn
+  oidc_issuer_url   = module.eks.cluster_oidc_issuer_url
+  tags              = local.tags
+
+  depends_on = [module.eks]
+}
+
+module "policy" {
+  source = "../../modules/policy"
+
+  chart_version = "3.2.6"
+
+  # HA admission webhooks for prod: 3 replicas behind the validating webhook.
+  values = [
+    yamlencode({
+      admissionController = {
+        replicas = 3
+      }
+    })
+  ]
+
+  depends_on = [module.eks]
+}
