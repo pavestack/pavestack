@@ -1,3 +1,5 @@
+# checkov:skip=CKV_OPENAPI_4: the golden-path template ships without auth; scaffolded services add their scheme per-service (authn/TLS live at the platform ingress)
+# checkov:skip=CKV_OPENAPI_5: same rationale - template endpoints are internal and unauthenticated by design
 openapi: 3.1.0
 info:
   title: service-template-api

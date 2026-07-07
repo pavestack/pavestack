@@ -50,9 +50,49 @@ resource "helm_release" "opencost" {
 # happens out-of-band.
 # ---------------------------------------------------------------------------
 
+# Customer-managed key so budget-alert encryption is auditable and revocable
+# (the AWS-managed alias/aws/sns key allows no key-policy control). Budgets
+# needs kms:GenerateDataKey*/Decrypt to publish to the encrypted topic.
+resource "aws_kms_key" "budget_alerts" {
+  description             = "KMS key for ${var.cluster_name} budget alert SNS encryption"
+  deletion_window_in_days = 10
+  enable_key_rotation     = true
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid       = "Enable IAM User Permissions"
+        Effect    = "Allow"
+        Principal = { AWS = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root" }
+        Action    = "kms:*"
+        Resource  = "*"
+      },
+      {
+        Sid       = "AllowBudgetsUseOfKey"
+        Effect    = "Allow"
+        Principal = { Service = "budgets.amazonaws.com" }
+        Action    = ["kms:GenerateDataKey*", "kms:Decrypt"]
+        Resource  = "*"
+        Condition = {
+          StringEquals = { "aws:SourceAccount" = data.aws_caller_identity.current.account_id }
+        }
+      }
+    ]
+  })
+
+  tags = merge(var.tags, {
+    Name = "${var.cluster_name}-budget-alerts"
+  })
+}
+
+resource "aws_kms_alias" "budget_alerts" {
+  name          = "alias/${var.cluster_name}-budget-alerts"
+  target_key_id = aws_kms_key.budget_alerts.key_id
+}
+
 resource "aws_sns_topic" "budget_alerts" {
   name              = "${var.cluster_name}-budget-alerts"
-  kms_master_key_id = "alias/aws/sns"
+  kms_master_key_id = aws_kms_key.budget_alerts.arn
 
   tags = merge(var.tags, {
     Name = "${var.cluster_name}-budget-alerts"

@@ -43,6 +43,7 @@ resource "aws_kms_alias" "velero" {
 }
 
 resource "aws_s3_bucket" "velero" {
+  # checkov:skip=CKV2_AWS_62: Velero polls the bucket itself; nothing consumes S3 event notifications
   bucket = local.bucket_name
 
   tags = merge(var.tags, {

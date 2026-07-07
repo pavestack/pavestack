@@ -14,7 +14,14 @@ servers:
   - url: http://localhost:8787
     description: Local dev (PAVE_API_BASE_URL default)
 
-security: []
+# checkov:skip=CKV_OPENAPI_5: pre-auth endpoints (health, OAuth login/callback, read-only catalog) legitimately declare empty security
+# checkov:skip=CKV_OPENAPI_20: the only server entry is local dev over http; deployed instances sit behind the TLS-terminating platform ingress
+# checkov:skip=CKV_OPENAPI_21: list responses are unbounded catalog queries with no meaningful maxItems bound
+# Secure by default: every operation requires the session cookie unless it
+# explicitly opts out with `security: []` - mirrors the RequireAuth wrapping
+# in pave/internal/apiserver/server.go.
+security:
+  - sessionCookie: []
 
 tags:
   - name: catalog
@@ -30,6 +37,7 @@ paths:
   /healthz:
     get:
       operationId: healthz
+      security: []
       summary: Liveness check
       tags: [catalog]
       responses:
@@ -45,6 +53,7 @@ paths:
   /api/v1/services:
     get:
       operationId: listServices
+      security: []
       summary: List all services in the catalog
       description: >
         Sourced from catalog-info.yaml/scorecard.yaml committed to this
@@ -93,6 +102,7 @@ paths:
   /api/v1/services/{name}:
     get:
       operationId: getService
+      security: []
       summary: Get one service by name
       tags: [catalog]
       parameters:
@@ -108,6 +118,7 @@ paths:
   /api/v1/jobs/{id}:
     get:
       operationId: getJob
+      security: []
       summary: Poll a create-service job's progress
       tags: [services]
       parameters:
@@ -127,6 +138,7 @@ paths:
   /api/v1/cost-estimate:
     get:
       operationId: getCostEstimate
+      security: []
       summary: Static, documented monthly cost range for a given shape
       description: >
         Not a live cloud-billing API call - a documented estimate table by
@@ -152,6 +164,7 @@ paths:
   /api/v1/access-requests:
     get:
       operationId: listAccessRequests
+      security: []
       summary: List all access requests
       tags: [access-requests]
       responses:
@@ -226,6 +239,7 @@ paths:
   /auth/github/login:
     get:
       operationId: authLogin
+      security: []
       summary: Begin the GitHub OAuth login flow
       description: Redirects the browser to GitHub's authorize URL. Not present when PAVE_API_DISABLE_AUTH=true.
       tags: [auth]
@@ -236,6 +250,7 @@ paths:
   /auth/github/callback:
     get:
       operationId: authCallback
+      security: []
       summary: GitHub OAuth callback
       description: Exchanges the authorization code, issues a session cookie, and redirects back to the portal.
       tags: [auth]
@@ -256,6 +271,7 @@ paths:
   /auth/logout:
     post:
       operationId: authLogout
+      security: []
       summary: Clear the session cookie
       tags: [auth]
       responses:
