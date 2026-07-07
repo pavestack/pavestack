@@ -18,6 +18,24 @@
     "database": {
       "type": "boolean",
       "description": "Whether the service requires a managed database"
+    },
+    "runtime": {
+      "type": "string",
+      "enum": ["go"],
+      "default": "go",
+      "description": "Golden-path runtime. Only 'go' is scaffoldable today (service-template-api); other runtimes are reserved for future golden-path templates."
+    },
+    "exposure": {
+      "type": "string",
+      "enum": ["internal", "public"],
+      "default": "internal",
+      "description": "internal: ClusterIP only. public: fronted by an ALB (adds cost, see /cost-estimate)."
+    },
+    "tier": {
+      "type": "string",
+      "enum": ["tier-1", "tier-2", "tier-3"],
+      "default": "tier-2",
+      "description": "Reliability/sizing tier. tier-1 = critical/high-traffic, tier-2 = standard (default), tier-3 = low-traffic internal tool. Drives replica count, resource requests/limits, and the cost estimate."
     }
   }
 }

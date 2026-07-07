@@ -1,0 +1,7 @@
+{
+  "generatedAt": "2026-07-05T09:00:00Z",
+  "source": "kubectl get polr -A -o json | jq (see reports/README.md)",
+  "namespaces": {
+    "service-template-api": { "pass": 24, "warn": 2, "fail": 0 }
+  }
+}

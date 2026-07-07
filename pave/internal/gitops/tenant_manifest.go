@@ -58,8 +58,22 @@ patches:
         path: /metadata/namespace
         value: {{.Name}}
   - target:
+      kind: NetworkPolicy
+      name: allow-egress-dns
+    patch: |
+      - op: replace
+        path: /metadata/namespace
+        value: {{.Name}}
+  - target:
       kind: ResourceQuota
       name: tenant-quota
+    patch: |
+      - op: replace
+        path: /metadata/namespace
+        value: {{.Name}}
+  - target:
+      kind: LimitRange
+      name: tenant-limits
     patch: |
       - op: replace
         path: /metadata/namespace
@@ -71,6 +85,47 @@ patches:
 image:
   repository: {{.ImageRepo}}
   tag: "0.1.0"
+
+env:
+  LOG_LEVEL: {{.LogLevel}}
+  SERVICE_NAME: {{.Name}}-api
+`
+
+	// tenantTemplateExtended supersedes tenantTemplate for tenants created
+	// after tier/runtime/exposure were introduced. tenantTemplate is kept
+	// so RenderTenant's existing contract (and its tests) stay stable.
+	tenantTemplateExtended = `namespace: {{.Name}}
+helmPath: {{.RelHelmPath}}
+releaseName: {{.Name}}-api
+owner: {{.Team}}
+database: {{.Database}}
+tier: {{.Tier}}
+runtime: {{.Runtime}}
+exposure: {{.Exposure}}
+`
+
+	// valuesTemplateTiered supersedes valuesTemplate to also pin the
+	// per-environment resource requests/limits derived from the service's
+	// tier, so tier sizing is enforced by the values Argo CD actually
+	// applies rather than left to chart defaults alone.
+	valuesTemplateTiered = `replicaCount: {{.ReplicaCount}}
+
+image:
+  repository: {{.ImageRepo}}
+  tag: "0.1.0"
+
+# team feeds the pavestack.io/team label the require-pavestack-labels
+# Kyverno ClusterPolicy enforces on every workload (see
+# platform-config/policies/kyverno/require-labels.yaml).
+team: {{.Team}}
+
+resources:
+  requests:
+    cpu: {{.RequestCPU}}
+    memory: {{.RequestMemory}}
+  limits:
+    cpu: {{.LimitCPU}}
+    memory: {{.LimitMemory}}
 
 env:
   LOG_LEVEL: {{.LogLevel}}
@@ -121,8 +176,10 @@ func NewTenantManifestRenderer() *TenantManifestRenderer {
 // We parse templates once at package load time.
 var (
 	tTenant            = template.Must(template.New("tenant").Parse(tenantTemplate))
+	tTenantExtended    = template.Must(template.New("tenantExtended").Parse(tenantTemplateExtended))
 	tBaseKustomization = template.Must(template.New("baseKustomization").Parse(baseKustomizationTemplate))
 	tValues            = template.Must(template.New("values").Parse(valuesTemplate))
+	tValuesTiered      = template.Must(template.New("valuesTiered").Parse(valuesTemplateTiered))
 	tApplication       = template.Must(template.New("application").Parse(applicationTemplate))
 )
 
@@ -132,6 +189,16 @@ type tenantData struct {
 	RelHelmPath string
 	Team        string
 	Database    bool
+}
+
+type tenantDataExtended struct {
+	Name        string
+	RelHelmPath string
+	Team        string
+	Database    bool
+	Tier        string
+	Runtime     string
+	Exposure    string
 }
 
 type baseKustomizationData struct {
@@ -144,6 +211,18 @@ type valuesData struct {
 	ImageRepo    string
 	ReplicaCount int
 	LogLevel     string
+}
+
+type valuesDataTiered struct {
+	Name          string
+	ImageRepo     string
+	ReplicaCount  int
+	LogLevel      string
+	Team          string
+	RequestCPU    string
+	RequestMemory string
+	LimitCPU      string
+	LimitMemory   string
 }
 
 type applicationData struct {
@@ -162,6 +241,26 @@ func (r *TenantManifestRenderer) RenderTenant(name, relHelmPath, team string, da
 	}
 	var buf bytes.Buffer
 	if err := tTenant.Execute(&buf, data); err != nil {
+		return "", err
+	}
+	return buf.String(), nil
+}
+
+// RenderTenantExtended returns the rendered tenant.yaml content including
+// tier/runtime/exposure. New tenants are always written with this method;
+// RenderTenant is kept only for its existing tested contract.
+func (r *TenantManifestRenderer) RenderTenantExtended(name, relHelmPath, team string, database bool, tier, runtime, exposure string) (string, error) {
+	data := tenantDataExtended{
+		Name:        name,
+		RelHelmPath: relHelmPath,
+		Team:        team,
+		Database:    database,
+		Tier:        tier,
+		Runtime:     runtime,
+		Exposure:    exposure,
+	}
+	var buf bytes.Buffer
+	if err := tTenantExtended.Execute(&buf, data); err != nil {
 		return "", err
 	}
 	return buf.String(), nil
@@ -193,6 +292,38 @@ func (r *TenantManifestRenderer) RenderValues(name, imageRepo string, replicaCou
 		return "", err
 	}
 	return buf.String(), nil
+}
+
+// RenderValuesTiered returns rendered values.yaml content including the
+// resource requests/limits for the service's tier. New tenants are always
+// written with this method; RenderValues is kept only for its existing
+// tested contract.
+func (r *TenantManifestRenderer) RenderValuesTiered(name, imageRepo string, replicaCount int, logLevel, team string, resources ResourceRequirements) (string, error) {
+	data := valuesDataTiered{
+		Name:          name,
+		ImageRepo:     imageRepo,
+		ReplicaCount:  replicaCount,
+		LogLevel:      logLevel,
+		Team:          team,
+		RequestCPU:    resources.RequestCPU,
+		RequestMemory: resources.RequestMemory,
+		LimitCPU:      resources.LimitCPU,
+		LimitMemory:   resources.LimitMemory,
+	}
+	var buf bytes.Buffer
+	if err := tValuesTiered.Execute(&buf, data); err != nil {
+		return "", err
+	}
+	return buf.String(), nil
+}
+
+// ResourceRequirements mirrors cost.ResourceProfile without importing the
+// cost package here, keeping tenant_manifest.go a pure rendering module.
+type ResourceRequirements struct {
+	RequestCPU    string
+	RequestMemory string
+	LimitCPU      string
+	LimitMemory   string
 }
 
 // RenderApplication returns the rendered application.yaml content.

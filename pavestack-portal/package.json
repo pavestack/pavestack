@@ -2,20 +2,26 @@
   "name": "pavestack-portal",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "generate-catalog": "node scripts/generate-catalog.mjs",
     "dev": "npm run generate-catalog && vite --host 0.0.0.0",
     "build": "npm run generate-catalog && tsc --noEmit && vite build",
     "preview": "vite preview --host 0.0.0.0",
-    "lint": "tsc --noEmit",
-    "test": "./node_modules/.bin/vitest run"
+    "lint": "eslint . && tsc --noEmit",
+    "format:check": "prettier --check .",
+    "test": "./node_modules/.bin/vitest run",
+    "test:coverage": "./node_modules/.bin/vitest run --coverage"
   },
   "dependencies": {
+    "@tanstack/react-virtual": "^3.13.6",
     "js-yaml": "^5.2.0",
     "react": "19.2.7",
-    "react-dom": "19.2.7"
+    "react-dom": "19.2.7",
+    "react-router-dom": "^7.1.1"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.4",
     "@tailwindcss/vite": "^4.3.2",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.2.0",
@@ -23,9 +29,16 @@
     "@types/react": "19.2.17",
     "@types/react-dom": "19.2.3",
     "@vitejs/plugin-react": "6.0.3",
+    "@vitest/coverage-v8": "^4.1.9",
+    "eslint": "^9.39.4",
+    "eslint-plugin-jsx-a11y": "^6.10.2",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "globals": "^17.7.0",
     "jsdom": "^29.1.1",
+    "prettier": "^3.9.4",
     "tailwindcss": "^4.3.2",
     "typescript": "6.0.3",
+    "typescript-eslint": "^8.62.1",
     "vite": "8.1.2",
     "vitest": "^4.1.9"
   }

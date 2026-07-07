@@ -1,0 +1,40 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: disallow-latest-tag
+  annotations:
+    policies.kyverno.io/title: Disallow Latest Image Tag
+    policies.kyverno.io/category: Pavestack Supply Chain
+    policies.kyverno.io/severity: high
+    policies.kyverno.io/description: >-
+      Images must be pinned to an explicit, immutable tag (Pavestack ECR
+      repositories are configured with IMMUTABLE tags and scan-on-push -
+      see platform-infra/modules/ecr) so a running Pod always corresponds
+      to a known, scanned, SBOM'd, and signed build. ":latest" (implicit or
+      explicit) is mutable and defeats that guarantee.
+spec:
+  validationFailureAction: Enforce
+  background: true
+  rules:
+    - name: require-image-tag
+      match:
+        any:
+          - resources:
+              kinds: ["Pod"]
+      validate:
+        message: "An explicit image tag is required (no implicit ':latest')."
+        pattern:
+          spec:
+            containers:
+              - image: "*:*"
+    - name: disallow-latest-tag
+      match:
+        any:
+          - resources:
+              kinds: ["Pod"]
+      validate:
+        message: "Using the ':latest' image tag is not allowed; pin to an immutable tag or digest."
+        pattern:
+          spec:
+            containers:
+              - image: "!*:latest"

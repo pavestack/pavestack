@@ -4,21 +4,33 @@ import (
 	"encoding/json"
 	"net/http"
 	"sync/atomic"
+	"time"
 
+	openapi "github.com/pavestack/service-template-api"
 	"github.com/pavestack/service-template-api/internal/config"
+	"github.com/pavestack/service-template-api/internal/logging"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.uber.org/zap"
 )
 
 type Server struct {
-	cfg    config.Config
-	logger *zap.Logger
-	ready  atomic.Bool
+	cfg         config.Config
+	logger      *zap.Logger
+	ready       atomic.Bool
+	openapiJSON []byte
 }
 
 func New(cfg config.Config, logger *zap.Logger) *Server {
 	s := &Server{cfg: cfg, logger: logger}
 	s.ready.Store(cfg.Ready)
+
+	body, err := openapi.JSON()
+	if err != nil {
+		logger.Error("failed to render openapi spec", logging.Error(err))
+	} else {
+		s.openapiJSON = body
+	}
+
 	return s
 }
 
@@ -26,7 +38,41 @@ func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /health", s.handleHealth)
 	mux.HandleFunc("GET /ready", s.handleReady)
-	return otelhttp.NewHandler(mux, "http.server")
+	mux.HandleFunc("GET /openapi.json", s.handleOpenAPI)
+	// otelhttp must be the outermost handler: it injects the active span
+	// into the request context before calling the next handler, and
+	// loggingMiddleware needs that span already present (via r.Context())
+	// to attach trace_id/span_id to its log line - all three observability
+	// pillars correlated by one ID, end to end. otelhttp also records the
+	// http.server.request.duration metric (via the global
+	// TracerProvider/MeterProvider installed by internal/telemetry) for
+	// every request.
+	return otelhttp.NewHandler(s.loggingMiddleware(mux), "http.server")
+}
+
+func (s *Server) loggingMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+		rec := &statusRecorder{ResponseWriter: w, status: http.StatusOK}
+		next.ServeHTTP(rec, r)
+
+		logging.FromContext(r.Context(), s.logger).Info("http request",
+			logging.String("method", r.Method),
+			logging.String("path", r.URL.Path),
+			zap.Int("status", rec.status),
+			zap.Duration("duration", time.Since(start)),
+		)
+	})
+}
+
+type statusRecorder struct {
+	http.ResponseWriter
+	status int
+}
+
+func (r *statusRecorder) WriteHeader(status int) {
+	r.status = status
+	r.ResponseWriter.WriteHeader(status)
 }
 
 func (s *Server) handleHealth(w http.ResponseWriter, _ *http.Request) {
@@ -46,6 +92,20 @@ func (s *Server) handleReady(w http.ResponseWriter, _ *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]string{
 		"status": "ready",
 	})
+}
+
+// handleOpenAPI serves the service's OpenAPI 3.1 contract as JSON, converted
+// at startup from the embedded openapi.yaml (see openapi.go at the repo root).
+func (s *Server) handleOpenAPI(w http.ResponseWriter, _ *http.Request) {
+	if s.openapiJSON == nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{
+			"error": "openapi spec unavailable",
+		})
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(s.openapiJSON)
 }
 
 func writeJSON(w http.ResponseWriter, status int, payload any) {

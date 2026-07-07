@@ -219,7 +219,7 @@ func getIntValue(v interface{}) (int, bool) {
 	return 0, false
 }
 
-func testEnvironment(t *testing.T, envName, expectedCidr, expectedInstanceType string, expectedDesiredSize int) {
+func testEnvironment(t *testing.T, envName, expectedCidr, expectedInstanceType string, expectedDesiredSize, expectedFlowLogRetention int) {
 	wd, err := os.Getwd()
 	if err != nil {
 		t.Fatalf("failed to get working dir: %v", err)
@@ -348,11 +348,53 @@ provider "aws" {
 		t.Errorf("expected scaling desired size %d, got %d", expectedDesiredSize, desiredSize)
 	}
 
+	// 3. Verify VPC flow logs and their CloudWatch log group, with per-env retention.
+	flowLogGroup, found := findResourceInRoot(plan, "module.vpc.aws_cloudwatch_log_group.flow_logs[0]")
+	if !found {
+		t.Fatalf("module.vpc.aws_cloudwatch_log_group.flow_logs[0] resource not found in plan")
+	}
+	retention, ok := getIntValue(flowLogGroup.Values["retention_in_days"])
+	if !ok {
+		t.Fatalf("retention_in_days not found or not an integer in flow-log CloudWatch log group")
+	}
+	if retention != expectedFlowLogRetention {
+		t.Errorf("expected flow-log retention_in_days %d, got %d", expectedFlowLogRetention, retention)
+	}
+
 	// Verify modules presence
 	expectedResources := []string{
 		"module.vpc.aws_vpc.this",
 		"module.eks.aws_eks_cluster.this",
 		"module.eks.aws_eks_node_group.default",
+		// VPC flow logs
+		"module.vpc.aws_flow_log.this[0]",
+		"module.vpc.aws_cloudwatch_log_group.flow_logs[0]",
+		// observability stack
+		"module.observability.helm_release.kube_prometheus_stack",
+		"module.observability.helm_release.loki",
+		"module.observability.helm_release.tempo",
+		// ingress: AWS Load Balancer Controller + its IRSA role (external-dns is
+		// gated on route53_zone_id, which is empty in plan-only test runs)
+		"module.ingress.helm_release.aws_load_balancer_controller[0]",
+		"module.ingress.aws_iam_role.aws_load_balancer_controller[0]",
+		// External Secrets Operator + its IRSA role
+		"module.secrets.helm_release.external_secrets",
+		"module.secrets.aws_iam_role.external_secrets",
+		// Kyverno policy admission controller
+		"module.policy.helm_release.kyverno",
+		// Karpenter: controller release, node role and interruption queue
+		"module.karpenter.helm_release.karpenter",
+		"module.karpenter.aws_iam_role.node",
+		"module.karpenter.aws_iam_role.controller",
+		"module.karpenter.aws_sqs_queue.interruption",
+		// FinOps: OpenCost + monthly budget with SNS alerting
+		"module.finops.helm_release.opencost",
+		"module.finops.aws_budgets_budget.monthly",
+		"module.finops.aws_sns_topic.budget_alerts",
+		// Backup: Velero release, backup bucket and IRSA role
+		"module.backup.helm_release.velero",
+		"module.backup.aws_s3_bucket.velero",
+		"module.backup.aws_iam_role.velero",
 	}
 	for _, resAddr := range expectedResources {
 		if _, found := findResourceInRoot(plan, resAddr); !found {
@@ -364,9 +406,13 @@ provider "aws" {
 }
 
 func TestDevEnvironment(t *testing.T) {
-	testEnvironment(t, "dev", "10.20.0.0/16", "t3.medium", 2)
+	testEnvironment(t, "dev", "10.20.0.0/16", "t3.medium", 2, 14)
 }
 
 func TestProdEnvironment(t *testing.T) {
-	testEnvironment(t, "prod", "10.30.0.0/16", "m6i.large", 3)
+	testEnvironment(t, "prod", "10.30.0.0/16", "m6i.large", 2, 90)
+}
+
+func TestStagingEnvironment(t *testing.T) {
+	testEnvironment(t, "staging", "10.25.0.0/16", "t3.medium", 2, 30)
 }

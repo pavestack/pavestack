@@ -1,0 +1,33 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: require-pavestack-labels
+  annotations:
+    policies.kyverno.io/title: Require Pavestack Ownership Labels
+    policies.kyverno.io/category: Pavestack Platform-as-Product
+    policies.kyverno.io/severity: medium
+    policies.kyverno.io/description: >-
+      Every workload must carry app.kubernetes.io/name and
+      pavestack.io/team so cost attribution, on-call routing, and the
+      portal's catalog view can always identify an owner - see the
+      cost-tagging convention in AGENTS.md.
+spec:
+  validationFailureAction: Enforce
+  background: true
+  rules:
+    - name: require-labels-on-workloads
+      match:
+        any:
+          # Rollout (argoproj.io/v1alpha1) is included alongside the
+          # built-in controllers because service-template-api's golden
+          # path deploys via Argo Rollouts, not a plain Deployment - see
+          # service-template-api/deploy/helm/.../templates/rollout.yaml.
+          - resources:
+              kinds: ["Deployment", "StatefulSet", "DaemonSet", "Rollout"]
+      validate:
+        message: "Workloads must carry the app.kubernetes.io/name and pavestack.io/team labels."
+        pattern:
+          metadata:
+            labels:
+              app.kubernetes.io/name: "?*"
+              pavestack.io/team: "?*"

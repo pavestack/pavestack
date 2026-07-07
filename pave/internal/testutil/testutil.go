@@ -64,6 +64,18 @@ func SetupWorkspace(t *testing.T, fsys ...afero.Fs) (afero.Fs, string) {
     "database": {
       "type": "boolean",
       "description": "Whether the service requires a managed database"
+    },
+    "runtime": {
+      "type": "string",
+      "enum": ["go"]
+    },
+    "exposure": {
+      "type": "string",
+      "enum": ["internal", "public"]
+    },
+    "tier": {
+      "type": "string",
+      "enum": ["tier-1", "tier-2", "tier-3"]
     }
   }
 }`
@@ -104,6 +116,23 @@ image:
   repository: 123456789012.dkr.ecr.us-east-1.amazonaws.com/pavestack/service-template-api
 env:
   SERVICE_NAME: service-template-api
+`,
+		filepath.Join(templateDir, "openapi.yaml"): `openapi: 3.1.0
+info:
+  title: service-template-api
+  description: >-
+    Golden-path internal API service template for Pavestack (service-template-api).
+  version: "0.1.0"
+servers:
+  - url: /
+    description: service-template-api HTTP server, relative to wherever it is deployed.
+paths:
+  /health:
+    get:
+      operationId: getHealth
+      responses:
+        "200":
+          description: Service process is alive.
 `,
 	}
 

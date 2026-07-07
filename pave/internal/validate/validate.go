@@ -5,15 +5,50 @@ import (
 	"encoding/json"
 	"fmt"
 	"path/filepath"
+	"strings"
 
 	"github.com/santhosh-tekuri/jsonschema/v5"
 	"github.com/spf13/afero"
 )
 
+// SafePathComponent reports whether name can be embedded in a filesystem
+// path without escaping its directory: single path element, no separators,
+// no traversal. The service-request JSON schema already enforces a stricter
+// shape at every entry point; this is the defense-in-depth check the
+// filesystem-writing packages apply right before use.
+func SafePathComponent(name string) bool {
+	return name != "" &&
+		!strings.Contains(name, "..") &&
+		!strings.ContainsAny(name, "/\\") &&
+		filepath.Clean(name) == name
+}
+
 type ServiceRequest struct {
 	Name     string `json:"name"`
 	Team     string `json:"team"`
 	Database bool   `json:"database"`
+	// Runtime, Exposure, and Tier are optional (added after the initial GA of
+	// pave create-service) and default via ApplyDefaults so older callers and
+	// serialized requests that omit them keep validating.
+	Runtime  string `json:"runtime,omitempty"`
+	Exposure string `json:"exposure,omitempty"`
+	Tier     string `json:"tier,omitempty"`
+}
+
+// ApplyDefaults fills unset optional fields with the platform defaults.
+// The CLI, and the pave-api HTTP handlers, must call this before Validate so
+// that a request missing runtime/exposure/tier resolves identically no
+// matter which entry point created it.
+func (r *ServiceRequest) ApplyDefaults() {
+	if r.Runtime == "" {
+		r.Runtime = "go"
+	}
+	if r.Exposure == "" {
+		r.Exposure = "internal"
+	}
+	if r.Tier == "" {
+		r.Tier = "tier-2"
+	}
 }
 
 type Validator struct {

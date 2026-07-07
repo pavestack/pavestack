@@ -1,0 +1,470 @@
+openapi: 3.0.3
+info:
+  title: pave-api
+  description: >
+    HTTP backend for the Pavestack self-service portal's "Create service"
+    and "Request access" flows. Reuses the same scaffold/gitops/validate
+    packages the `pave` CLI uses directly - see `pave/internal/apiserver`.
+    See `pave/API_VERSIONING.md` for this contract's versioning policy and
+    `docs/adr/0002-pave-api-authentication.md` for the authentication model.
+  version: "1.0"
+  license:
+    name: Proprietary
+servers:
+  - url: http://localhost:8787
+    description: Local dev (PAVE_API_BASE_URL default)
+
+# checkov:skip=CKV_OPENAPI_5: pre-auth endpoints (health, OAuth login/callback, read-only catalog) legitimately declare empty security
+# checkov:skip=CKV_OPENAPI_20: the only server entry is local dev over http; deployed instances sit behind the TLS-terminating platform ingress
+# checkov:skip=CKV_OPENAPI_21: list responses are unbounded catalog queries with no meaningful maxItems bound
+# Secure by default: every operation requires the session cookie unless it
+# explicitly opts out with `security: []` - mirrors the RequireAuth wrapping
+# in pave/internal/apiserver/server.go.
+security:
+  - sessionCookie: []
+
+tags:
+  - name: catalog
+    description: Read-only service catalog and cost estimation
+  - name: services
+    description: Scaffold a new service (mirrors `pave create-service`)
+  - name: access-requests
+    description: Namespace/permission access requests, requiring human approval
+  - name: auth
+    description: GitHub OAuth login and session management
+
+paths:
+  /healthz:
+    get:
+      operationId: healthz
+      security: []
+      summary: Liveness check
+      tags: [catalog]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, example: ok }
+
+  /api/v1/services:
+    get:
+      operationId: listServices
+      security: []
+      summary: List all services in the catalog
+      description: >
+        Sourced from catalog-info.yaml/scorecard.yaml committed to this
+        repo - the same source of truth pavestack-portal's
+        generate-catalog.mjs reads. Public: no confidentiality is added by
+        gating already-committed data behind auth.
+      tags: [catalog]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Service" }
+    post:
+      operationId: createService
+      summary: Scaffold a new service
+      description: >
+        Validates the request, then asynchronously scaffolds the
+        golden-path template, writes GitOps manifests, and (unless
+        PAVE_API_DRY_RUN=true) opens a pull request - identical to `pave
+        create-service`. Returns immediately with a job to poll.
+      tags: [services]
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateServiceRequest" }
+      responses:
+        "202":
+          description: Accepted - job queued
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  jobId: { type: string, example: job_a1b2c3d4 }
+                  statusUrl: { type: string, example: /api/v1/jobs/job_a1b2c3d4 }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /api/v1/services/{name}:
+    get:
+      operationId: getService
+      security: []
+      summary: Get one service by name
+      tags: [catalog]
+      parameters:
+        - $ref: "#/components/parameters/ServiceName"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Service" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/v1/jobs/{id}:
+    get:
+      operationId: getJob
+      security: []
+      summary: Poll a create-service job's progress
+      tags: [services]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+          example: job_a1b2c3d4
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Job" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/v1/cost-estimate:
+    get:
+      operationId: getCostEstimate
+      security: []
+      summary: Static, documented monthly cost range for a given shape
+      description: >
+        Not a live cloud-billing API call - a documented estimate table by
+        tier/exposure/database, see `pave/internal/cost`.
+      tags: [catalog]
+      parameters:
+        - name: tier
+          in: query
+          schema: { type: string, enum: [tier-1, tier-2, tier-3] }
+        - name: exposure
+          in: query
+          schema: { type: string, enum: [internal, public], default: internal }
+        - name: database
+          in: query
+          schema: { type: boolean, default: false }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CostEstimateResponse" }
+
+  /api/v1/access-requests:
+    get:
+      operationId: listAccessRequests
+      security: []
+      summary: List all access requests
+      tags: [access-requests]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/AccessRequest" }
+    post:
+      operationId: createAccessRequest
+      summary: Submit an access request
+      description: Always lands in "pending" - the platform never silently auto-grants access.
+      tags: [access-requests]
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateAccessRequestPayload" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AccessRequest" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /api/v1/access-requests/{id}:
+    patch:
+      operationId: decideAccessRequest
+      summary: Approve or deny an access request
+      description: >
+        Requires membership in the configured approver GitHub team
+        (PAVE_API_APPROVER_TEAM). The approver recorded is always the
+        verified session identity, never a client-supplied field - see
+        docs/adr/0002-pave-api-authentication.md.
+      tags: [access-requests]
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+          example: ar_a1b2c3
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [action]
+              properties:
+                action: { type: string, enum: [approve, deny] }
+                note: { type: string }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AccessRequest" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /auth/github/login:
+    get:
+      operationId: authLogin
+      security: []
+      summary: Begin the GitHub OAuth login flow
+      description: Redirects the browser to GitHub's authorize URL. Not present when PAVE_API_DISABLE_AUTH=true.
+      tags: [auth]
+      responses:
+        "302": { description: Redirect to GitHub }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /auth/github/callback:
+    get:
+      operationId: authCallback
+      security: []
+      summary: GitHub OAuth callback
+      description: Exchanges the authorization code, issues a session cookie, and redirects back to the portal.
+      tags: [auth]
+      parameters:
+        - name: code
+          in: query
+          required: true
+          schema: { type: string }
+        - name: state
+          in: query
+          required: true
+          schema: { type: string }
+      responses:
+        "302": { description: Redirect to the portal }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /auth/logout:
+    post:
+      operationId: authLogout
+      security: []
+      summary: Clear the session cookie
+      tags: [auth]
+      responses:
+        "204": { description: No portal URL configured - cookie cleared, no redirect }
+        "302": { description: Redirect to the portal }
+
+  /auth/me:
+    get:
+      operationId: authMe
+      summary: Current authenticated identity
+      tags: [auth]
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Identity" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: pave_session
+      description: Signed session cookie issued by /auth/github/callback.
+
+  parameters:
+    ServiceName:
+      name: name
+      in: path
+      required: true
+      schema: { type: string }
+      example: payments-api
+
+  responses:
+    BadRequest:
+      description: Invalid request
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    Unauthorized:
+      description: Authentication required
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    Forbidden:
+      description: Authenticated, but not authorized for this action
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    NotFound:
+      description: Not found
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    RateLimited:
+      description: Rate limit exceeded
+      headers:
+        Retry-After:
+          schema: { type: integer }
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        error: { type: string }
+
+    Identity:
+      type: object
+      properties:
+        login: { type: string, example: octocat }
+        teams:
+          type: array
+          items: { type: string }
+          example: [platform]
+
+    Service:
+      type: object
+      properties:
+        name: { type: string }
+        team: { type: string }
+        owner: { type: string }
+        lifecycle: { type: string }
+        system: { type: string }
+        description: { type: string }
+        repoUrl: { type: string }
+        createdVia: { type: string, enum: [pave-cli, manual] }
+        tier: { type: string, enum: [tier-1, tier-2, tier-3] }
+        runtime: { type: string }
+        exposure: { type: string, enum: [internal, public] }
+        scorecard:
+          type: object
+          properties:
+            overallScore: { type: integer }
+            criteria:
+              type: array
+              items:
+                type: object
+                properties:
+                  key: { type: string }
+                  label: { type: string }
+                  weight: { type: integer }
+                  status: { type: string }
+                  evidence: { type: string }
+        environments:
+          type: object
+          additionalProperties:
+            type: object
+            properties:
+              status: { type: string }
+              health: { type: string }
+              imageTag: { type: string }
+
+    CreateServiceRequest:
+      type: object
+      required: [name, team, database]
+      properties:
+        name:
+          type: string
+          pattern: "^[a-z][a-z0-9-]{1,48}[a-z0-9]$"
+          example: payments
+        team:
+          type: string
+          pattern: "^[a-z][a-z0-9-]{1,62}[a-z0-9]$"
+          example: team-payments
+        database: { type: boolean }
+        runtime: { type: string, enum: [go], default: go }
+        exposure: { type: string, enum: [internal, public], default: internal }
+        tier: { type: string, enum: [tier-1, tier-2, tier-3], default: tier-2 }
+
+    Job:
+      type: object
+      properties:
+        jobId: { type: string }
+        status:
+          type: string
+          enum: [queued, validating, scaffolding, writing_manifests, opening_pr, completed, failed]
+        steps:
+          type: array
+          items:
+            type: object
+            properties:
+              name: { type: string }
+              state: { type: string, enum: [pending, running, done, failed] }
+              message: { type: string }
+              timestamp: { type: string, format: date-time }
+        prUrl: { type: string }
+        dryRun: { type: boolean }
+        error: { type: string }
+        createdAt: { type: string, format: date-time }
+
+    CostEstimateResponse:
+      type: object
+      properties:
+        monthlyUsdLow: { type: number }
+        monthlyUsdHigh: { type: number }
+        currency: { type: string, example: USD }
+        breakdown:
+          type: array
+          items:
+            type: object
+            properties:
+              item: { type: string }
+              monthlyUsdLow: { type: number }
+              monthlyUsd: { type: number }
+        disclaimer: { type: string }
+
+    CreateAccessRequestPayload:
+      type: object
+      required: [requester, namespace, level]
+      properties:
+        requester: { type: string, example: alice }
+        team: { type: string, example: team-payments }
+        namespace: { type: string, example: payments }
+        level: { type: string, enum: [read, write, admin] }
+        reason: { type: string }
+
+    AccessRequest:
+      type: object
+      properties:
+        id: { type: string, example: ar_a1b2c3 }
+        requester: { type: string }
+        team: { type: string }
+        namespace: { type: string }
+        level: { type: string, enum: [read, write, admin] }
+        reason: { type: string }
+        status: { type: string, enum: [pending, approved, denied] }
+        approver: { type: string }
+        note: { type: string }
+        createdAt: { type: string, format: date-time }

@@ -49,3 +49,22 @@ jobs:
         run: tflint --init
       - name: TFLint scan
         run: tflint --recursive
+
+  gitleaks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        with:
+          fetch-depth: 0
+      # gitleaks-action requires a paid license for organizations; the
+      # open-source CLI runs the identical scan without one, so install the
+      # pinned binary and invoke it directly.
+      - name: Install gitleaks
+        env:
+          GITLEAKS_VERSION: 8.30.1
+        run: |
+          curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" -o /tmp/gitleaks.tgz
+          tar -xzf /tmp/gitleaks.tgz -C /tmp gitleaks
+
+      - name: Gitleaks secret scan
+        run: /tmp/gitleaks git --config .gitleaks.toml --redact --exit-code 1 --verbose .

@@ -1,0 +1,23 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: pavestack-policies-prod
+  namespace: argocd
+  labels:
+    pavestack.io/component: policy
+    pavestack.io/environment: prod
+spec:
+  project: pavestack
+  source:
+    repoURL: https://github.com/pavestack/pavestack.git
+    targetRevision: main
+    path: platform-config/policies/overlays/prod
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kyverno
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

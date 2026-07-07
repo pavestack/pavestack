@@ -1,0 +1,6 @@
+bucket       = "pavestack-shared-tfstate-123456789012"
+key          = "platform-infra/staging/terraform.tfstate"
+region       = "us-east-1"
+use_lockfile = true
+encrypt      = true
+kms_key_id   = "arn:aws:kms:us-east-1:123456789012:key/example"

@@ -1,0 +1,19 @@
+# Requires cert-manager CRDs (see platform-infra/modules/ingress) and the ALB
+# ingress class (AWS Load Balancer Controller) to already be installed.
+#
+# NOTE: `email` must be replaced with a real, per-cluster address before this
+# is applied — Let's Encrypt uses it for expiry and abuse notifications.
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt
+spec:
+  acme:
+    server: https://acme-v02.api.letsencrypt.org/directory
+    email: REPLACE_EMAIL
+    privateKeySecretRef:
+      name: letsencrypt-account-key
+    solvers:
+      - http01:
+          ingress:
+            ingressClassName: alb

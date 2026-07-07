@@ -19,4 +19,13 @@ spec:
       ports:
         - protocol: TCP
           port: {{ .Values.service.targetPort }}
+    {{- if .Values.ingress.enabled }}
+    # Allow ALB traffic: with alb.ingress.kubernetes.io/target-type: ip the ALB
+    # reaches pod IPs directly from outside the cluster, so it is not matched by
+    # the in-cluster namespaceSelector rule above. An ingress rule with only
+    # ports (no from) permits all sources on the target port.
+    - ports:
+        - protocol: TCP
+          port: {{ .Values.service.targetPort }}
+    {{- end }}
 {{- end }}

@@ -1,0 +1,22 @@
+# Gitleaks configuration for Pavestack.
+# Extends the default gitleaks ruleset (github.com/gitleaks/gitleaks) and adds
+# repo-specific allowlisting so fixtures/examples don't trip false positives.
+title = "pavestack-gitleaks"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Pavestack fixtures and documented placeholders"
+paths = [
+  '''(?i)\.git/''',
+  '''pave/internal/testutil/testutil\.go''',
+  '''(?i)go\.sum$''',
+  '''(?i)package-lock\.json$''',
+  '''(?i)\.svg$''',
+]
+regexes = [
+  # Placeholder AWS account ID used throughout example ECR repository URLs
+  # (123456789012.dkr.ecr.us-east-1.amazonaws.com) - not a real credential.
+  '''123456789012\.dkr\.ecr''',
+]

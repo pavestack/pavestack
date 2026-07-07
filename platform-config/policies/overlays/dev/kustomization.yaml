@@ -1,0 +1,43 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../baseline
+# Dev runs every baseline policy in Audit mode: violations are recorded as
+# PolicyReports but nothing is blocked. Promote to Enforce (see the prod
+# overlay) after the policy has run clean in dev for one week.
+patches:
+  - target:
+      kind: ClusterPolicy
+      name: require-requests-limits
+    patch: |
+      - op: replace
+        path: /spec/validationFailureAction
+        value: Audit
+  - target:
+      kind: ClusterPolicy
+      name: disallow-privileged
+    patch: |
+      - op: replace
+        path: /spec/validationFailureAction
+        value: Audit
+  - target:
+      kind: ClusterPolicy
+      name: disallow-latest-tag
+    patch: |
+      - op: replace
+        path: /spec/validationFailureAction
+        value: Audit
+  - target:
+      kind: ClusterPolicy
+      name: restrict-registries
+    patch: |
+      - op: replace
+        path: /spec/validationFailureAction
+        value: Audit
+  - target:
+      kind: ClusterPolicy
+      name: require-run-as-nonroot
+    patch: |
+      - op: replace
+        path: /spec/validationFailureAction
+        value: Audit

@@ -1,0 +1,23 @@
+# Requires the Karpenter controller and its CRDs to already be installed
+# (see platform-infra/modules/karpenter).
+#
+# NOTE: REPLACE_NODE_ROLE and REPLACE_CLUSTER_NAME must be substituted with
+# real, per-cluster values before this is applied — REPLACE_NODE_ROLE is the
+# karpenter module's node_role_name output, and REPLACE_CLUSTER_NAME is the
+# EKS cluster name (the same value the karpenter module tags discovery
+# subnets/security groups with via karpenter.sh/discovery).
+apiVersion: karpenter.k8s.aws/v1
+kind: EC2NodeClass
+metadata:
+  name: default
+spec:
+  amiFamily: AL2023
+  amiSelectorTerms:
+    - alias: al2023@latest
+  role: REPLACE_NODE_ROLE
+  subnetSelectorTerms:
+    - tags:
+        karpenter.sh/discovery: REPLACE_CLUSTER_NAME
+  securityGroupSelectorTerms:
+    - tags:
+        karpenter.sh/discovery: REPLACE_CLUSTER_NAME

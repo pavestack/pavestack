@@ -1,0 +1,83 @@
+/*
+  Pavestack shared design tokens.
+  Canonical source — copied into landing/ and pavestack-portal/ build outputs.
+  Do not fork these values; edit here and re-sync.
+*/
+:root {
+  color-scheme: dark;
+
+  /* Brand */
+  --brand-teal: #14b8a6;
+  --brand-teal-strong: #0d9488;
+  --brand-amber: #f59e0b;
+  --brand-amber-strong: #d97706;
+
+  /* Dark theme surfaces (default) */
+  --bg: #0a0e14;
+  --bg-elevated: #10161f;
+  --bg-surface: #141b26;
+  --bg-surface-hover: #1a2330;
+  --border: #232c3a;
+  --border-strong: #2f3b4d;
+
+  /* Dark theme text */
+  --text-primary: #eaf1f8;
+  --text-secondary: #93a3b8;
+  --text-muted: #5b6b82;
+
+  /* Semantic (shared across themes) */
+  --accent: var(--brand-teal);
+  --accent-hover: var(--brand-teal-strong);
+  --accent-contrast: #04231f;
+  --highlight: var(--brand-amber);
+  --success: #2fd88a;
+  --warning: var(--brand-amber);
+  --danger: #f0596b;
+  --info: #5b9cf6;
+
+  /* Type */
+  --font-display: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-body: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+
+  /* Radii & shadow */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px -12px rgba(0, 0, 0, 0.5);
+  --shadow-glow: 0 0 0 1px rgba(20, 184, 166, 0.25), 0 0 32px -8px rgba(20, 184, 166, 0.35);
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  --bg: #f7f9fc;
+  --bg-elevated: #ffffff;
+  --bg-surface: #ffffff;
+  --bg-surface-hover: #eef2f7;
+  --border: #e1e7ef;
+  --border-strong: #cbd5e1;
+
+  --text-primary: #0f1720;
+  --text-secondary: #47566b;
+  --text-muted: #7c8aa0;
+
+  --accent: var(--brand-teal-strong);
+  --accent-hover: #0b756b;
+  --accent-contrast: #ffffff;
+  --highlight: var(--brand-amber-strong);
+  --success: #12946a;
+  --warning: #b45309;
+  --danger: #c8283f;
+  --info: #2563eb;
+
+  --shadow-card: 0 1px 2px rgba(15, 23, 32, 0.06), 0 8px 24px -12px rgba(15, 23, 32, 0.12);
+  --shadow-glow: 0 0 0 1px rgba(13, 148, 136, 0.18), 0 0 32px -8px rgba(13, 148, 136, 0.25);
+}
+
+/* Respect OS preference on first load when no explicit choice is stored */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    color-scheme: light;
+  }
+}

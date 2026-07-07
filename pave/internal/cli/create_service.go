@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/pavestack/pave/internal/cost"
 	"github.com/pavestack/pave/internal/gitops"
 	"github.com/pavestack/pave/internal/scaffold"
 	"github.com/pavestack/pave/internal/validate"
@@ -18,6 +19,9 @@ type createServiceOptions struct {
 	Name     string
 	Team     string
 	Database bool
+	Runtime  string
+	Exposure string
+	Tier     string
 	NoPR     bool
 	Branch   string
 }
@@ -43,7 +47,19 @@ func newCreateServiceCmd() *cobra.Command {
 				Name:     opts.Name,
 				Team:     opts.Team,
 				Database: opts.Database,
+				Runtime:  opts.Runtime,
+				Exposure: opts.Exposure,
+				Tier:     opts.Tier,
 			}
+			request.ApplyDefaults()
+
+			estimate := cost.Estimate(cost.Tier(request.Tier), request.Exposure, request.Database)
+			fmt.Fprintf(cmd.OutOrStdout(), "\nEstimated cost (%s, %s, database=%t): $%.0f-%.0f/month\n", estimate.Tier, request.Exposure, request.Database, estimate.MonthlyUSDLow, estimate.MonthlyUSDHigh)
+			for _, item := range estimate.Breakdown {
+				fmt.Fprintf(cmd.OutOrStdout(), "  - %s: $%.0f-%.0f/month\n", item.Item, item.MonthlyUSDLow, item.MonthlyUSD)
+			}
+			fmt.Fprintf(cmd.OutOrStdout(), "  (%s)\n\n", estimate.Disclaimer)
+
 			fs := afero.NewOsFs()
 			schemaPath := filepath.Join(root, "pave", "schemas", "service-request.schema.json")
 			schemaBytes, err := afero.ReadFile(fs, schemaPath)
@@ -84,6 +100,9 @@ func newCreateServiceCmd() *cobra.Command {
 	cmd.Flags().StringVar(&opts.Name, "name", "", "Service name (DNS-safe slug)")
 	cmd.Flags().StringVar(&opts.Team, "team", "", "Owning team slug")
 	cmd.Flags().BoolVar(&opts.Database, "database", false, "Provision managed database")
+	cmd.Flags().StringVar(&opts.Runtime, "runtime", cost.DefaultRuntime, "Golden-path runtime (only 'go' is scaffoldable today)")
+	cmd.Flags().StringVar(&opts.Exposure, "exposure", cost.DefaultExposure, "Service exposure: internal (ClusterIP) or public (ALB)")
+	cmd.Flags().StringVar(&opts.Tier, "tier", string(cost.DefaultTier), "Reliability/sizing tier: tier-1 (critical), tier-2 (standard), tier-3 (low-traffic)")
 	cmd.Flags().BoolVar(&opts.NoPR, "no-pr", false, "Skip automatic pull request creation")
 	cmd.Flags().StringVar(&opts.Branch, "branch", "", "Branch name for pull request")
 
