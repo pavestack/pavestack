@@ -17,7 +17,7 @@ on:
         description: Environment to apply
         required: true
         type: choice
-        options: ["dev", "prod"]
+        options: ["dev", "staging", "prod"]
   schedule:
     - cron: "17 3 * * *"
 
@@ -34,7 +34,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        environment: ["dev", "prod"]
+        environment: ["dev", "staging", "prod"]
     defaults:
       run:
         working-directory: platform-infra
@@ -91,7 +91,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        environment: ["dev", "prod"]
+        environment: ["dev", "staging", "prod"]
     defaults:
       run:
         working-directory: platform-infra
@@ -166,7 +166,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        environment: ["dev", "prod"]
+        environment: ["dev", "staging", "prod"]
     environment: ${{ matrix.environment }}
     defaults:
       run:
@@ -252,7 +252,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        environment: ["dev", "prod"]
+        environment: ["dev", "staging", "prod"]
     environment: ${{ github.event_name == 'workflow_dispatch' && inputs.environment || matrix.environment }}
     steps:
       - name: Skip non-selected environment
@@ -314,7 +314,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        environment: ["dev", "prod"]
+        environment: ["dev", "staging", "prod"]
     environment: ${{ matrix.environment }}
     defaults:
       run:

@@ -64,7 +64,7 @@ After merge, Argo CD reconciles the new tenant.
 
 ### Image promotion
 
-CI workflows update `tenants/{name}/dev/values.yaml` (and `prod/values.yaml`) with the new image tag and open a PR. After merge, Argo CD rolls out the new image.
+CI workflows update `tenants/{name}/dev/values.yaml` and `tenants/{name}/staging/values.yaml` with the new image tag in the same automated GitOps PR. After merge, Argo CD rolls out the new image to both dev and staging. Promoting a build from staging to prod is a separate, manually-approved PR that edits only `tenants/{name}/prod/values.yaml`. See [`docs/promotion.md`](../docs/promotion.md) for the full promotion model, including how infra changes move through `dev` → `staging` → `prod`.
 
 ## Templates
 

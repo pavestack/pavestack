@@ -1,0 +1,44 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../baseline
+# Staging runs every baseline policy in Audit mode: violations are recorded as
+# PolicyReports but nothing is blocked. It validates new/changed policies
+# against a prod-shaped cluster before they promote to Enforce in prod (see
+# the prod overlay).
+patches:
+  - target:
+      kind: ClusterPolicy
+      name: require-requests-limits
+    patch: |
+      - op: replace
+        path: /spec/validationFailureAction
+        value: Audit
+  - target:
+      kind: ClusterPolicy
+      name: disallow-privileged
+    patch: |
+      - op: replace
+        path: /spec/validationFailureAction
+        value: Audit
+  - target:
+      kind: ClusterPolicy
+      name: disallow-latest-tag
+    patch: |
+      - op: replace
+        path: /spec/validationFailureAction
+        value: Audit
+  - target:
+      kind: ClusterPolicy
+      name: restrict-registries
+    patch: |
+      - op: replace
+        path: /spec/validationFailureAction
+        value: Audit
+  - target:
+      kind: ClusterPolicy
+      name: require-run-as-nonroot
+    patch: |
+      - op: replace
+        path: /spec/validationFailureAction
+        value: Audit

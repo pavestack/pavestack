@@ -412,3 +412,7 @@ func TestDevEnvironment(t *testing.T) {
 func TestProdEnvironment(t *testing.T) {
 	testEnvironment(t, "prod", "10.30.0.0/16", "m6i.large", 2, 90)
 }
+
+func TestStagingEnvironment(t *testing.T) {
+	testEnvironment(t, "staging", "10.25.0.0/16", "t3.medium", 2, 30)
+}
