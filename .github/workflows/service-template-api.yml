@@ -61,7 +61,7 @@ jobs:
         run: npx --yes @stoplight/spectral-cli lint openapi.yaml --ruleset .spectral.yaml
 
       - name: Trivy filesystem scan
-        uses: aquasecurity/trivy-action@df678dbccf677bc6937338d569ba0da18964a8cc # master
+        uses: aquasecurity/trivy-action@c07df6fec6fa692e6fd1200d50aaa1fdd66f03c8 # master
         with:
           scan-type: fs
           scan-ref: service-template-api
@@ -125,7 +125,7 @@ jobs:
           echo "IMAGE=${IMAGE}" >> "$GITHUB_ENV"
 
       - name: Trivy image scan
-        uses: aquasecurity/trivy-action@df678dbccf677bc6937338d569ba0da18964a8cc # master
+        uses: aquasecurity/trivy-action@c07df6fec6fa692e6fd1200d50aaa1fdd66f03c8 # master
         with:
           image-ref: ${{ env.IMAGE }}
           severity: CRITICAL,HIGH
@@ -242,7 +242,7 @@ jobs:
           echo "IMAGE=${IMAGE}" >> "$GITHUB_ENV"
 
       - name: Trivy image scan
-        uses: aquasecurity/trivy-action@df678dbccf677bc6937338d569ba0da18964a8cc # master
+        uses: aquasecurity/trivy-action@c07df6fec6fa692e6fd1200d50aaa1fdd66f03c8 # master
         with:
           image-ref: ${{ env.IMAGE }}
           severity: CRITICAL,HIGH
