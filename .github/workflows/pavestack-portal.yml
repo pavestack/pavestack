@@ -49,7 +49,7 @@ jobs:
 
 
       - name: Trivy filesystem scan
-        uses: aquasecurity/trivy-action@df678dbccf677bc6937338d569ba0da18964a8cc # master
+        uses: aquasecurity/trivy-action@c07df6fec6fa692e6fd1200d50aaa1fdd66f03c8 # master
         with:
           scan-type: fs
           scan-ref: pavestack-portal
@@ -57,7 +57,7 @@ jobs:
           exit-code: 1
 
       - name: Checkov policy scan
-        uses: bridgecrewio/checkov-action@a7683e7b72a04503521247973281ec8142e1ac1f # v12
+        uses: bridgecrewio/checkov-action@d9d1e5cdc53e3a91f0c4c58db7bc19ee31cac7e5 # v12
         with:
           directory: pavestack-portal
           quiet: true
