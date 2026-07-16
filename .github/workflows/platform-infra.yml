@@ -243,7 +243,7 @@ jobs:
           terraform -chdir=envs/${{ matrix.environment }} show -no-color tfplan > /tmp/plan.txt
 
       - name: Comment plan on PR
-        uses: actions/github-script@v7 # TODO: pin to commit SHA
+        uses: actions/github-script@v9 # TODO: pin to commit SHA
         with:
           script: |
             const fs = require('fs');
@@ -399,7 +399,7 @@ jobs:
 
       - name: Report drift
         if: steps.plan.outputs.exitcode == '2'
-        uses: actions/github-script@v7 # TODO: pin to commit SHA
+        uses: actions/github-script@v9 # TODO: pin to commit SHA
         with:
           script: |
             const title = 'Terraform drift detected: ${{ matrix.environment }}';
