@@ -69,7 +69,7 @@ jobs:
           exit-code: 1
 
       - name: Checkov Docker and Kubernetes scan
-        uses: bridgecrewio/checkov-action@d9d1e5cdc53e3a91f0c4c58db7bc19ee31cac7e5 # v12
+        uses: bridgecrewio/checkov-action@7b972723c44fb3d256283fac96fae5d7c1894bb7 # v12
         with:
           directory: service-template-api
           quiet: true
