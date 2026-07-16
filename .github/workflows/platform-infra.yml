@@ -85,7 +85,7 @@ jobs:
         run: terraform -chdir=envs/${{ matrix.environment }} validate
 
       - name: Checkov policy scan
-        uses: bridgecrewio/checkov-action@d9d1e5cdc53e3a91f0c4c58db7bc19ee31cac7e5 # v12
+        uses: bridgecrewio/checkov-action@7b972723c44fb3d256283fac96fae5d7c1894bb7 # v12
         with:
           directory: platform-infra
           quiet: true
@@ -133,7 +133,7 @@ jobs:
 
       - name: Setup Infracost
         if: env.INFRACOST_API_KEY != ''
-        uses: infracost/actions/setup@v3 # TODO: pin to commit SHA
+        uses: infracost/actions/setup@v4 # TODO: pin to commit SHA
         with:
           api-key: ${{ env.INFRACOST_API_KEY }}
 
@@ -243,7 +243,7 @@ jobs:
           terraform -chdir=envs/${{ matrix.environment }} show -no-color tfplan > /tmp/plan.txt
 
       - name: Comment plan on PR
-        uses: actions/github-script@v7 # TODO: pin to commit SHA
+        uses: actions/github-script@v9 # TODO: pin to commit SHA
         with:
           script: |
             const fs = require('fs');
@@ -399,7 +399,7 @@ jobs:
 
       - name: Report drift
         if: steps.plan.outputs.exitcode == '2'
-        uses: actions/github-script@v7 # TODO: pin to commit SHA
+        uses: actions/github-script@v9 # TODO: pin to commit SHA
         with:
           script: |
             const title = 'Terraform drift detected: ${{ matrix.environment }}';
