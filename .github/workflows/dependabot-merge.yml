@@ -17,7 +17,7 @@ jobs:
       contents: write
       pull-requests: write
     steps:
-      - uses: actions/checkout@11bd71901afe2a7b8433aa5f2dddad4b34a26cc0 # v4.2.2
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v4.2.2
 
       - name: Approve and auto-merge dependabot PR
         env:
