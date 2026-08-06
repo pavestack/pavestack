@@ -61,7 +61,7 @@ jobs:
         run: npx --yes @stoplight/spectral-cli lint openapi.yaml --ruleset .spectral.yaml
 
       - name: Trivy filesystem scan
-        uses: aquasecurity/trivy-action@c07df6fec6fa692e6fd1200d50aaa1fdd66f03c8 # master
+        uses: aquasecurity/trivy-action@2736533278103862a861f4a35ebac3e97854d956 # master
         with:
           scan-type: fs
           scan-ref: service-template-api
@@ -69,7 +69,7 @@ jobs:
           exit-code: 1
 
       - name: Checkov Docker and Kubernetes scan
-        uses: bridgecrewio/checkov-action@7b972723c44fb3d256283fac96fae5d7c1894bb7 # v12
+        uses: bridgecrewio/checkov-action@9b70310bcd306d11740313070b940167d6b23085 # v12
         with:
           directory: service-template-api
           quiet: true
@@ -125,7 +125,7 @@ jobs:
           echo "IMAGE=${IMAGE}" >> "$GITHUB_ENV"
 
       - name: Trivy image scan
-        uses: aquasecurity/trivy-action@c07df6fec6fa692e6fd1200d50aaa1fdd66f03c8 # master
+        uses: aquasecurity/trivy-action@2736533278103862a861f4a35ebac3e97854d956 # master
         with:
           image-ref: ${{ env.IMAGE }}
           severity: CRITICAL,HIGH
@@ -242,7 +242,7 @@ jobs:
           echo "IMAGE=${IMAGE}" >> "$GITHUB_ENV"
 
       - name: Trivy image scan
-        uses: aquasecurity/trivy-action@c07df6fec6fa692e6fd1200d50aaa1fdd66f03c8 # master
+        uses: aquasecurity/trivy-action@2736533278103862a861f4a35ebac3e97854d956 # master
         with:
           image-ref: ${{ env.IMAGE }}
           severity: CRITICAL,HIGH
