@@ -46,7 +46,7 @@ jobs:
         run: terraform fmt -recursive -check
 
       - name: Setup TFLint
-        uses: terraform-linters/setup-tflint@6e1e0642c0289bd619021bf6b34e3c08ed1e005a # v6
+        uses: terraform-linters/setup-tflint@1cf010d3c7aef302051ccdb68c14c5dc2efa34ef # v6
 
       - name: TFLint init
         # Authenticated so the ruleset download isn't throttled by the
@@ -65,7 +65,7 @@ jobs:
         run: terraform -chdir=envs/azure/${{ matrix.environment }} validate
 
       - name: Checkov policy scan
-        uses: bridgecrewio/checkov-action@1246d92f57abae29d5db5f9aeeed2a9813e52d7d # v12
+        uses: bridgecrewio/checkov-action@a8664e3a0549367977f0cda990a34311835c87c0 # v12
         with:
           directory: platform-infra
           quiet: true
@@ -105,7 +105,7 @@ jobs:
         with:
           terraform_version: 1.9.0
 
-      - uses: azure/login@f5d393ae46f8fde4be8b75f32e3fc50e654ad0ca # v3.0.1
+      - uses: azure/login@a641126d1b8aa4d1fa005f4f92df94a3a4c4c906 # v3.1.0
         with:
           client-id: ${{ vars.AZURE_CLIENT_ID }}
           tenant-id: ${{ vars.AZURE_TENANT_ID }}
@@ -155,7 +155,7 @@ jobs:
         with:
           terraform_version: 1.9.0
 
-      - uses: azure/login@f5d393ae46f8fde4be8b75f32e3fc50e654ad0ca # v3.0.1
+      - uses: azure/login@a641126d1b8aa4d1fa005f4f92df94a3a4c4c906 # v3.1.0
         if: github.event_name != 'workflow_dispatch' || matrix.environment == inputs.environment
         with:
           client-id: ${{ vars.AZURE_CLIENT_ID }}
