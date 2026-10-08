@@ -30,7 +30,7 @@ jobs:
           done
 
       - name: Checkov Kubernetes scan
-        uses: bridgecrewio/checkov-action@a8664e3a0549367977f0cda990a34311835c87c0 # v12
+        uses: bridgecrewio/checkov-action@7b1bd992e2c40a3404e3511944aeb8d014703d9a # v12
         with:
           directory: platform-config
           framework: kubernetes
@@ -38,7 +38,7 @@ jobs:
           config_file: .checkov.yaml
 
       - name: Trivy config scan
-        uses: aquasecurity/trivy-action@d2a0b60797ff03db6132bd4e2b293f9b37081297 # master
+        uses: aquasecurity/trivy-action@c03d123cb480c08c69b054af418ea5e69fe6e57e # master
         with:
           scan-type: config
           scan-ref: platform-config

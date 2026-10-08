@@ -61,7 +61,7 @@ jobs:
         run: npx --yes @stoplight/spectral-cli lint openapi.yaml --ruleset .spectral.yaml
 
       - name: Trivy filesystem scan
-        uses: aquasecurity/trivy-action@d2a0b60797ff03db6132bd4e2b293f9b37081297 # master
+        uses: aquasecurity/trivy-action@c03d123cb480c08c69b054af418ea5e69fe6e57e # master
         with:
           scan-type: fs
           scan-ref: service-template-api
@@ -69,7 +69,7 @@ jobs:
           exit-code: 1
 
       - name: Checkov Docker and Kubernetes scan
-        uses: bridgecrewio/checkov-action@a8664e3a0549367977f0cda990a34311835c87c0 # v12
+        uses: bridgecrewio/checkov-action@7b1bd992e2c40a3404e3511944aeb8d014703d9a # v12
         with:
           directory: service-template-api
           quiet: true
@@ -107,7 +107,7 @@ jobs:
           TAG="$(git rev-parse --short HEAD)"
           echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
 
-      - uses: aws-actions/configure-aws-credentials@cbe3b392738ccf3f987d68400dafcf4b0624a56c # v6
+      - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6
         with:
           role-to-assume: ${{ vars.AWS_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
@@ -125,7 +125,7 @@ jobs:
           echo "IMAGE=${IMAGE}" >> "$GITHUB_ENV"
 
       - name: Trivy image scan
-        uses: aquasecurity/trivy-action@d2a0b60797ff03db6132bd4e2b293f9b37081297 # master
+        uses: aquasecurity/trivy-action@c03d123cb480c08c69b054af418ea5e69fe6e57e # master
         with:
           image-ref: ${{ env.IMAGE }}
           severity: CRITICAL,HIGH
@@ -242,7 +242,7 @@ jobs:
           echo "IMAGE=${IMAGE}" >> "$GITHUB_ENV"
 
       - name: Trivy image scan
-        uses: aquasecurity/trivy-action@d2a0b60797ff03db6132bd4e2b293f9b37081297 # master
+        uses: aquasecurity/trivy-action@c03d123cb480c08c69b054af418ea5e69fe6e57e # master
         with:
           image-ref: ${{ env.IMAGE }}
           severity: CRITICAL,HIGH
