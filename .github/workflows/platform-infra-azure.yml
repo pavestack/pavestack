@@ -46,7 +46,7 @@ jobs:
         run: terraform fmt -recursive -check
 
       - name: Setup TFLint
-        uses: terraform-linters/setup-tflint@1cf010d3c7aef302051ccdb68c14c5dc2efa34ef # v6
+        uses: terraform-linters/setup-tflint@6ffdbaa3be476b3431f7275c26966ef32ff60337 # v6
 
       - name: TFLint init
         # Authenticated so the ruleset download isn't throttled by the
@@ -65,14 +65,14 @@ jobs:
         run: terraform -chdir=envs/azure/${{ matrix.environment }} validate
 
       - name: Checkov policy scan
-        uses: bridgecrewio/checkov-action@a8664e3a0549367977f0cda990a34311835c87c0 # v12
+        uses: bridgecrewio/checkov-action@29be5868bfa968f099ae80169f61f42887494b8f # v12
         with:
           directory: platform-infra
           quiet: true
           config_file: .checkov.yaml
 
       - name: Trivy config scan
-        uses: aquasecurity/trivy-action@d2a0b60797ff03db6132bd4e2b293f9b37081297 # master
+        uses: aquasecurity/trivy-action@6abccf398f78b4c337599c0656f933d91efb91a0 # master
         with:
           scan-type: config
           scan-ref: platform-infra
